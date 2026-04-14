@@ -1,0 +1,17 @@
+plugins {
+    id 'application'
+}
+import org.gradle.internal.os.OperatingSystem
+
+dependencies {
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+    runtimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+}
+
+application {
+    mainClass = 'com.ironhold.lwjgl3.Lwjgl3Launcher'
+    if (OperatingSystem.current().isMacOsX()) {
+        applicationDefaultJvmArgs = ['-XstartOnFirstThread']
+    }
+}
