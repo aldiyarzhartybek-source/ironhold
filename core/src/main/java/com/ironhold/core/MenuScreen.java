@@ -13,7 +13,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.game.screen.ScreenNavigator;
@@ -77,7 +76,7 @@ public final class MenuScreen extends ScreenAdapter {
 
     private void initSkin() {
         skin.add("default-font", new BitmapFont());
-        skin.add("button-base", new TextureRegionDrawable(uiTexture));
+        skin.add("button-base", uiTexture);
 
         Drawable up = skin.newDrawable("button-base", new Color(0.2f, 0.2f, 0.28f, 1f));
         Drawable over = skin.newDrawable("button-base", new Color(0.28f, 0.28f, 0.38f, 1f));
