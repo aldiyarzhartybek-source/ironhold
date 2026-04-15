@@ -14,7 +14,9 @@ public class IronHoldGame extends Game {
     @Override
     public void create() {
         screens = new ScreenManager(this);
-        screens.register(ScreenId.PLAY, () -> new PlayScreen(screens));
-        screens.goTo(ScreenId.PLAY);
+        screens.register(ScreenId.LOADING, () -> new LoadingScreen(screens));
+        screens.register(ScreenId.MENU, () -> new MenuScreen(screens));
+        screens.register(ScreenId.GAME, GameScreen::new);
+        screens.goTo(ScreenId.LOADING);
     }
 }
