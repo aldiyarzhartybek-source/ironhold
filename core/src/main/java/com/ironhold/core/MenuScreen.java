@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.ironhold.assets.AssetService;
 import com.ironhold.ui.UiLayer;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.game.screen.ScreenNavigator;
@@ -18,9 +19,9 @@ public final class MenuScreen extends ScreenAdapter {
     private final ScreenNavigator navigator;
     private final UiLayer ui;
 
-    public MenuScreen(ScreenNavigator navigator) {
+    public MenuScreen(ScreenNavigator navigator, AssetService assets) {
         this.navigator = Objects.requireNonNull(navigator, "navigator");
-        this.ui = new UiLayer();
+        this.ui = new UiLayer(Objects.requireNonNull(assets, "assets").getSkin());
         initButtons();
     }
 
