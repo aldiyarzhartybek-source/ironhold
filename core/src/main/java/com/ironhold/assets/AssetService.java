@@ -1,10 +1,13 @@
 package com.ironhold.assets;
 
 import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -22,9 +25,11 @@ public final class AssetService {
 
     private final RuntimeAssetManager assets = new RuntimeAssetManager();
     private boolean queued;
-    private boolean loaded;
+    private boolean runtimeLoaded;
 
     public void queueCoreAssets() {
+        assets.setLoader(TiledMap.class, new TmxMapLoader(new InternalFileHandleResolver()));
+        assets.load(AssetCatalog.MAP_LEVEL_0, TiledMap.class);
         queued = true;
     }
 
@@ -32,15 +37,15 @@ public final class AssetService {
         if (!queued) {
             return false;
         }
-        if (!loaded) {
-            loadCoreAssets();
-            loaded = true;
+        if (!runtimeLoaded) {
+            loadRuntimeAssets();
+            runtimeLoaded = true;
         }
-        return loaded;
+        return assets.update();
     }
 
     public float getProgress() {
-        return loaded ? 1f : 0f;
+        return queued ? assets.getProgress() : 0f;
     }
 
     public Skin getSkin() {
@@ -58,17 +63,22 @@ public final class AssetService {
         return assets.get(AssetCatalog.TEXTURE_TEST, Texture.class);
     }
 
+    public TiledMap getLevel0Map() {
+        ensureLoaded();
+        return assets.get(AssetCatalog.MAP_LEVEL_0, TiledMap.class);
+    }
+
     public void dispose() {
         assets.dispose();
     }
 
     private void ensureLoaded() {
-        if (!loaded) {
+        if (!queued || !assets.isFinished()) {
             throw new IllegalStateException("Assets are not loaded yet");
         }
     }
 
-    private void loadCoreAssets() {
+    private void loadRuntimeAssets() {
         BitmapFont font = new BitmapFont();
         Texture testTexture = createTestTexture();
         Skin skin = createSkin(font, testTexture);
