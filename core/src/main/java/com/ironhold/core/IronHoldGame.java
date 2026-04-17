@@ -2,6 +2,7 @@ package com.ironhold.core;
 
 import com.badlogic.gdx.Game;
 import com.ironhold.assets.AssetService;
+import com.ironhold.config.GameConfig;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.game.screen.ScreenManager;
 
@@ -12,9 +13,11 @@ public class IronHoldGame extends Game {
 
     private AssetService assets;
     private ScreenManager screens;
+    private GameConfig config;
 
     @Override
     public void create() {
+        config = GameConfig.loadDefault();
         assets = new AssetService();
         screens = new ScreenManager(this);
         screens.register(ScreenId.LOADING, () -> new LoadingScreen(screens, assets));
@@ -27,5 +30,9 @@ public class IronHoldGame extends Game {
     public void dispose() {
         super.dispose();
         assets.dispose();
+    }
+
+    public GameConfig getConfig() {
+        return config;
     }
 }
