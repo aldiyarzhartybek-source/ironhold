@@ -2,6 +2,9 @@ package com.ironhold.core;
 
 import com.badlogic.gdx.Game;
 import com.ironhold.assets.AssetService;
+import com.ironhold.events.GameStartedEvent;
+import com.ironhold.events.SimpleEventBus;
+import com.ironhold.game.GameContext;
 import com.ironhold.config.GameConfig;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.game.screen.ScreenManager;
@@ -13,25 +16,33 @@ public class IronHoldGame extends Game {
 
     private AssetService assets;
     private ScreenManager screens;
-    private GameConfig config;
+    private GameContext context;
 
     @Override
     public void create() {
+        context = new GameContext(new SimpleEventBus());
         config = GameConfig.loadDefault();
+      
         assets = new AssetService();
         screens = new ScreenManager(this);
         screens.register(ScreenId.LOADING, () -> new LoadingScreen(screens, assets));
         screens.register(ScreenId.MENU, () -> new MenuScreen(screens, assets));
         screens.register(ScreenId.GAME, () -> new GameScreen(assets));
+      
+        context.getEventBus().publish(new GameStartedEvent());
         screens.goTo(ScreenId.LOADING);
     }
 
     @Override
     public void dispose() {
         super.dispose();
+        context.getEventBus().clear();
         assets.dispose();
     }
 
+    public GameContext getContext() {
+        return context;
+      
     public GameConfig getConfig() {
         return config;
     }
