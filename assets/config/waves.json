@@ -1,0 +1,14 @@
+{
+  "waves": [
+    {
+      "enemyId": "grunt",
+      "count": 10,
+      "spawnIntervalSec": 1.25
+    },
+    {
+      "enemyId": "runner",
+      "count": 6,
+      "spawnIntervalSec": 1.1
+    }
+  ]
+}

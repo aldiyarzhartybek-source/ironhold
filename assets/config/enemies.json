@@ -1,0 +1,16 @@
+{
+  "enemies": [
+    {
+      "id": "grunt",
+      "hp": 100,
+      "speed": 1.0,
+      "reward": 10
+    },
+    {
+      "id": "runner",
+      "hp": 65,
+      "speed": 1.45,
+      "reward": 12
+    }
+  ]
+}
