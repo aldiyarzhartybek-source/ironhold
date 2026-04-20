@@ -7,21 +7,20 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.ironhold.assets.AssetService;
 import com.ironhold.ui.UiLayer;
+import com.ironhold.game.GameFacade;
 import com.ironhold.game.screen.ScreenId;
-import com.ironhold.game.screen.ScreenNavigator;
 
 import java.util.Objects;
 
 public final class MenuScreen extends ScreenAdapter {
 
-    private final ScreenNavigator navigator;
+    private final GameFacade game;
     private final UiLayer ui;
 
-    public MenuScreen(ScreenNavigator navigator, AssetService assets) {
-        this.navigator = Objects.requireNonNull(navigator, "navigator");
-        this.ui = new UiLayer(Objects.requireNonNull(assets, "assets").getSkin());
+    public MenuScreen(GameFacade game) {
+        this.game = Objects.requireNonNull(game, "game");
+        this.ui = new UiLayer(game.getAssets().getSkin());
         initButtons();
     }
 
@@ -58,7 +57,7 @@ public final class MenuScreen extends ScreenAdapter {
         startButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                navigator.goTo(ScreenId.GAME);
+                game.getScreens().goTo(ScreenId.GAME);
             }
         });
 

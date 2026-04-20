@@ -9,7 +9,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
-import com.ironhold.assets.AssetService;
+import com.ironhold.game.GameFacade;
 
 import java.util.Objects;
 
@@ -21,8 +21,9 @@ public final class GameScreen extends ScreenAdapter {
     private final TiledMap map;
     private final OrthogonalTiledMapRenderer mapRenderer;
 
-    public GameScreen(AssetService assets) {
-        AssetService assetService = Objects.requireNonNull(assets, "assets");
+    public GameScreen(GameFacade game) {
+        Objects.requireNonNull(game, "game");
+        var assetService = game.getAssets();
         this.camera = new OrthographicCamera();
         this.batch = new SpriteBatch();
         this.font = assetService.getFont();
