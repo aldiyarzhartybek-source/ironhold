@@ -5,6 +5,7 @@ import com.ironhold.assets.AssetService;
 import com.ironhold.events.GameStartedEvent;
 import com.ironhold.events.SimpleEventBus;
 import com.ironhold.game.GameContext;
+import com.ironhold.config.GameConfig;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.game.screen.ScreenManager;
 
@@ -20,11 +21,14 @@ public class IronHoldGame extends Game {
     @Override
     public void create() {
         context = new GameContext(new SimpleEventBus());
+        config = GameConfig.loadDefault();
+      
         assets = new AssetService();
         screens = new ScreenManager(this);
         screens.register(ScreenId.LOADING, () -> new LoadingScreen(screens, assets));
         screens.register(ScreenId.MENU, () -> new MenuScreen(screens, assets));
         screens.register(ScreenId.GAME, () -> new GameScreen(assets));
+      
         context.getEventBus().publish(new GameStartedEvent());
         screens.goTo(ScreenId.LOADING);
     }
@@ -38,5 +42,8 @@ public class IronHoldGame extends Game {
 
     public GameContext getContext() {
         return context;
+      
+    public GameConfig getConfig() {
+        return config;
     }
 }

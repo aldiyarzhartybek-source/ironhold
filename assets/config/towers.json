@@ -1,0 +1,18 @@
+{
+  "towers": [
+    {
+      "id": "basic_tower",
+      "cost": 75,
+      "range": 2.8,
+      "damage": 15,
+      "fireRateSec": 1.0
+    },
+    {
+      "id": "sniper_tower",
+      "cost": 120,
+      "range": 5.2,
+      "damage": 35,
+      "fireRateSec": 1.8
+    }
+  ]
+}
