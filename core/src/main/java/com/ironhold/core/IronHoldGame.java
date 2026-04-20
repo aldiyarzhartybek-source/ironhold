@@ -6,6 +6,7 @@ import com.ironhold.events.GameStartedEvent;
 import com.ironhold.events.SimpleEventBus;
 import com.ironhold.game.GameContext;
 import com.ironhold.game.GameFacade;
+import com.ironhold.game.model.GameModelMapper;
 import com.ironhold.config.GameConfig;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.game.screen.ScreenManager;
@@ -19,6 +20,7 @@ public class IronHoldGame extends Game {
     private ScreenManager screens;
     private GameContext context;
     private GameFacade facade;
+    private GameConfig config;
 
     @Override
     public void create() {
@@ -27,7 +29,16 @@ public class IronHoldGame extends Game {
       
         assets = new AssetService();
         screens = new ScreenManager(this);
-        facade = new GameFacade(context, assets, screens);
+        facade = new GameFacade(
+            context,
+            assets,
+            screens,
+            GameModelMapper.mapEnemies(config),
+            GameModelMapper.mapTowers(config),
+            GameModelMapper.mapWaves(config),
+            GameModelMapper.defaultBuildSlots(),
+            GameModelMapper.mapEconomy(config)
+        );
         screens.register(ScreenId.LOADING, () -> new LoadingScreen(facade));
         screens.register(ScreenId.MENU, () -> new MenuScreen(facade));
         screens.register(ScreenId.GAME, () -> new GameScreen(facade));
@@ -44,7 +55,8 @@ public class IronHoldGame extends Game {
 
     public GameContext getContext() {
         return context;
-      
+    }
+
     public GameConfig getConfig() {
         return config;
     }
