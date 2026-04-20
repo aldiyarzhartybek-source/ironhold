@@ -14,6 +14,7 @@ import com.ironhold.game.GameFacade;
 import java.util.Objects;
 
 public final class GameScreen extends ScreenAdapter {
+    private final GameFacade game;
     private final OrthographicCamera camera;
     private final SpriteBatch batch;
     private final BitmapFont font;
@@ -22,7 +23,7 @@ public final class GameScreen extends ScreenAdapter {
     private final OrthogonalTiledMapRenderer mapRenderer;
 
     public GameScreen(GameFacade game) {
-        Objects.requireNonNull(game, "game");
+        this.game = Objects.requireNonNull(game, "game");
         var assetService = game.getAssets();
         this.camera = new OrthographicCamera();
         this.batch = new SpriteBatch();
@@ -45,6 +46,11 @@ public final class GameScreen extends ScreenAdapter {
         batch.begin();
         batch.draw(testTexture, 24f, 24f, 64f, 64f);
         font.draw(batch, "GameScreen placeholder", 24f, Gdx.graphics.getHeight() - 24f);
+        font.draw(batch, "Enemies: " + game.getEnemies().size(), 24f, Gdx.graphics.getHeight() - 52f);
+        font.draw(batch, "Towers: " + game.getTowers().size(), 24f, Gdx.graphics.getHeight() - 80f);
+        font.draw(batch, "Waves: " + game.getWaves().size(), 24f, Gdx.graphics.getHeight() - 108f);
+        font.draw(batch, "BuildSlots: " + game.getBuildSlots().size(), 24f, Gdx.graphics.getHeight() - 136f);
+        font.draw(batch, "Gold: " + game.getEconomy().getGold(), 24f, Gdx.graphics.getHeight() - 164f);
         batch.end();
     }
 
