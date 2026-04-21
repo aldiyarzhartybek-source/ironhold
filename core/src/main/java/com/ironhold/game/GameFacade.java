@@ -8,6 +8,7 @@ import com.ironhold.game.model.Enemy;
 import com.ironhold.game.model.Tower;
 import com.ironhold.game.model.WaveDefinition;
 import com.ironhold.game.screen.ScreenNavigator;
+import com.ironhold.level.RuntimeLevelState;
 
 import java.util.List;
 import java.util.Objects;
@@ -25,6 +26,7 @@ public final class GameFacade {
     private final List<WaveDefinition> waves;
     private final List<BuildSlot> buildSlots;
     private final EconomyState economy;
+    private final RuntimeLevelState runtimeLevelState;
 
     public GameFacade(
         GameContext context,
@@ -44,6 +46,7 @@ public final class GameFacade {
         this.waves = List.copyOf(Objects.requireNonNull(waves, "waves"));
         this.buildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
         this.economy = Objects.requireNonNull(economy, "economy");
+        this.runtimeLevelState = new RuntimeLevelState(this.waves);
     }
 
     public GameContext getContext() {
@@ -80,5 +83,17 @@ public final class GameFacade {
 
     public EconomyState getEconomy() {
         return economy;
+    }
+
+    public RuntimeLevelState getRuntimeLevelState() {
+        return runtimeLevelState;
+    }
+
+    public void startLevel() {
+        runtimeLevelState.start();
+    }
+
+    public void updateLevel(float deltaSec) {
+        runtimeLevelState.update(deltaSec);
     }
 }
