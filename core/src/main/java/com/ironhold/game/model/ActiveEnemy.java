@@ -8,11 +8,12 @@ public final class ActiveEnemy {
     private final String runtimeId;
     private final String enemyId;
     private final int maxHp;
-    private final int currentHp;
+    private int currentHp;
     private final float speed;
     private final int reward;
-    private final float x;
-    private final float y;
+    private float x;
+    private float y;
+    private int targetWaypointIndex;
 
     public ActiveEnemy(
         String runtimeId,
@@ -22,7 +23,8 @@ public final class ActiveEnemy {
         float speed,
         int reward,
         float x,
-        float y
+        float y,
+        int targetWaypointIndex
     ) {
         this.runtimeId = runtimeId;
         this.enemyId = enemyId;
@@ -32,6 +34,7 @@ public final class ActiveEnemy {
         this.reward = reward;
         this.x = x;
         this.y = y;
+        this.targetWaypointIndex = targetWaypointIndex;
     }
 
     public String getRuntimeId() {
@@ -64,5 +67,22 @@ public final class ActiveEnemy {
 
     public float getY() {
         return y;
+    }
+
+    public int getTargetWaypointIndex() {
+        return targetWaypointIndex;
+    }
+
+    public void setCurrentHp(int currentHp) {
+        this.currentHp = currentHp;
+    }
+
+    public void setPosition(float x, float y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public void setTargetWaypointIndex(int targetWaypointIndex) {
+        this.targetWaypointIndex = targetWaypointIndex;
     }
 }
