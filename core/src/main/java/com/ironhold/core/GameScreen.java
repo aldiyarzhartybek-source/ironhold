@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.ironhold.game.GameFacade;
+import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.level.RuntimeLevelState;
 
 import java.util.Objects;
@@ -54,16 +55,20 @@ public final class GameScreen extends ScreenAdapter {
 
         batch.begin();
         batch.draw(testTexture, 24f, 24f, 64f, 64f);
+        for (ActiveEnemy enemy : game.getActiveEnemies()) {
+            batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
+        }
         font.draw(batch, "Level status: " + level.getStatus(), 24f, Gdx.graphics.getHeight() - 24f);
         font.draw(batch, "Wave: " + level.getCurrentWaveNumber() + "/" + level.getTotalWaves(), 24f, Gdx.graphics.getHeight() - 52f);
         font.draw(batch, "Spawn timer: " + String.format("%.2f", level.getSpawnTimerSec()), 24f, Gdx.graphics.getHeight() - 80f);
         font.draw(batch, "Wave spawned: " + level.getSpawnedInCurrentWave(), 24f, Gdx.graphics.getHeight() - 108f);
         font.draw(batch, "Total spawned: " + level.getTotalSpawnedEnemies(), 24f, Gdx.graphics.getHeight() - 136f);
         font.draw(batch, "Last enemyId: " + level.getLastSpawnedEnemyId(), 24f, Gdx.graphics.getHeight() - 164f);
-        font.draw(batch, "Enemies cfg: " + game.getEnemies().size(), 24f, Gdx.graphics.getHeight() - 192f);
-        font.draw(batch, "Towers cfg: " + game.getTowers().size(), 24f, Gdx.graphics.getHeight() - 220f);
-        font.draw(batch, "BuildSlots: " + game.getBuildSlots().size(), 24f, Gdx.graphics.getHeight() - 248f);
-        font.draw(batch, "Gold: " + game.getEconomy().getGold(), 24f, Gdx.graphics.getHeight() - 276f);
+        font.draw(batch, "Active enemies: " + game.getActiveEnemies().size(), 24f, Gdx.graphics.getHeight() - 192f);
+        font.draw(batch, "Enemies cfg: " + game.getEnemies().size(), 24f, Gdx.graphics.getHeight() - 220f);
+        font.draw(batch, "Towers cfg: " + game.getTowers().size(), 24f, Gdx.graphics.getHeight() - 248f);
+        font.draw(batch, "BuildSlots: " + game.getBuildSlots().size(), 24f, Gdx.graphics.getHeight() - 276f);
+        font.draw(batch, "Gold: " + game.getEconomy().getGold(), 24f, Gdx.graphics.getHeight() - 304f);
         batch.end();
     }
 
