@@ -2,6 +2,7 @@ package com.ironhold.level;
 
 import com.ironhold.game.model.WaveDefinition;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -14,6 +15,7 @@ public final class RuntimeLevelState {
     private int totalSpawnedEnemies;
     private float spawnTimerSec;
     private String lastSpawnedEnemyId;
+    private final List<String> pendingSpawnEnemyIds;
 
     public RuntimeLevelState(List<WaveDefinition> waves) {
         this.waves = List.copyOf(Objects.requireNonNull(waves, "waves"));
@@ -23,6 +25,7 @@ public final class RuntimeLevelState {
         this.totalSpawnedEnemies = 0;
         this.spawnTimerSec = 0f;
         this.lastSpawnedEnemyId = "";
+        this.pendingSpawnEnemyIds = new ArrayList<>();
     }
 
     public void start() {
@@ -39,6 +42,7 @@ public final class RuntimeLevelState {
         totalSpawnedEnemies = 0;
         spawnTimerSec = 0f;
         lastSpawnedEnemyId = "";
+        pendingSpawnEnemyIds.clear();
     }
 
     public void update(float deltaSec) {
@@ -59,6 +63,7 @@ public final class RuntimeLevelState {
             spawnedInCurrentWave++;
             totalSpawnedEnemies++;
             lastSpawnedEnemyId = currentWave.getEnemyId();
+            pendingSpawnEnemyIds.add(currentWave.getEnemyId());
         }
 
         if (spawnedInCurrentWave >= currentWave.getCount()) {
@@ -100,6 +105,15 @@ public final class RuntimeLevelState {
 
     public String getLastSpawnedEnemyId() {
         return lastSpawnedEnemyId;
+    }
+
+    public List<String> consumePendingSpawnEnemyIds() {
+        if (pendingSpawnEnemyIds.isEmpty()) {
+            return List.of();
+        }
+        List<String> spawned = List.copyOf(pendingSpawnEnemyIds);
+        pendingSpawnEnemyIds.clear();
+        return spawned;
     }
 
     private boolean hasCurrentWave() {
