@@ -1,5 +1,6 @@
 package com.ironhold.game;
 
+import com.badlogic.gdx.math.Vector2;
 import com.ironhold.assets.AssetService;
 import com.ironhold.events.EventBus;
 import com.ironhold.game.model.ActiveEnemy;
@@ -21,6 +22,7 @@ import java.util.Objects;
  * Единая точка доступа к runtime-сервисам (фасад для экранов и будущих систем).
  */
 public final class GameFacade {
+    private static final float ENEMY_SPEED_MULTIPLIER = 20.0f;
 
     private final GameContext context;
     private final AssetService assets;
@@ -33,6 +35,7 @@ public final class GameFacade {
     private final RuntimeLevelState runtimeLevelState;
     private final Map<String, Enemy> enemiesById;
     private final List<ActiveEnemy> activeEnemies;
+    private final List<Vector2> enemyPath;
     private int nextEnemyInstanceId;
 
     public GameFacade(
@@ -56,6 +59,7 @@ public final class GameFacade {
         this.runtimeLevelState = new RuntimeLevelState(this.waves);
         this.enemiesById = indexEnemiesById(this.enemies);
         this.activeEnemies = new ArrayList<>();
+        this.enemyPath = defaultEnemyPath();
         this.nextEnemyInstanceId = 1;
     }
 
@@ -110,19 +114,24 @@ public final class GameFacade {
     }
 
     public void updateLevel(float deltaSec) {
-        runtimeLevelState.update(deltaSec);
+        float safeDeltaSec = Math.max(0f, deltaSec);
+        runtimeLevelState.update(safeDeltaSec);
         for (String enemyId : runtimeLevelState.consumePendingSpawnEnemyIds()) {
             spawnEnemy(enemyId);
+        }
+        updateEnemyMovement(safeDeltaSec);
+        if (runtimeLevelState.areAllWavesSpawned()
+            && activeEnemies.isEmpty()) {
+            runtimeLevelState.markCompletedIfRunning();
         }
     }
 
     private void spawnEnemy(String enemyId) {
         Enemy template = enemiesById.get(enemyId);
-        if (template == null) {
+        if (template == null || enemyPath.isEmpty()) {
             return;
         }
-        float spawnX = 48f + (activeEnemies.size() % 10) * 40f;
-        float spawnY = 240f + (activeEnemies.size() / 10) * 40f;
+        Vector2 spawn = enemyPath.get(0);
         ActiveEnemy enemy = new ActiveEnemy(
             "enemy-" + nextEnemyInstanceId++,
             template.getId(),
@@ -130,10 +139,61 @@ public final class GameFacade {
             template.getCurrentHp(),
             template.getSpeed(),
             template.getReward(),
-            spawnX,
-            spawnY
+            spawn.x,
+            spawn.y,
+            1
         );
         activeEnemies.add(enemy);
+    }
+
+    private void updateEnemyMovement(float deltaSec) {
+        if (deltaSec <= 0f || activeEnemies.isEmpty() || enemyPath.size() < 2) {
+            return;
+        }
+        List<ActiveEnemy> escapedEnemies = new ArrayList<>();
+        for (ActiveEnemy enemy : activeEnemies) {
+            if (advanceEnemyAlongPath(enemy, deltaSec)) {
+                escapedEnemies.add(enemy);
+            }
+        }
+        if (!escapedEnemies.isEmpty()) {
+            activeEnemies.removeAll(escapedEnemies);
+            for (int i = 0; i < escapedEnemies.size(); i++) {
+                runtimeLevelState.onEnemyEscaped();
+            }
+        }
+    }
+
+    private boolean advanceEnemyAlongPath(ActiveEnemy enemy, float deltaSec) {
+        float remainingDistance = enemy.getSpeed() * ENEMY_SPEED_MULTIPLIER * deltaSec;
+        while (remainingDistance > 0f) {
+            int targetIndex = enemy.getTargetWaypointIndex();
+            if (targetIndex >= enemyPath.size()) {
+                return true;
+            }
+            Vector2 target = enemyPath.get(targetIndex);
+            float dx = target.x - enemy.getX();
+            float dy = target.y - enemy.getY();
+            float distanceToTarget = (float) Math.sqrt(dx * dx + dy * dy);
+            if (distanceToTarget <= 0.001f) {
+                enemy.setPosition(target.x, target.y);
+                enemy.setTargetWaypointIndex(targetIndex + 1);
+                continue;
+            }
+            if (remainingDistance >= distanceToTarget) {
+                enemy.setPosition(target.x, target.y);
+                enemy.setTargetWaypointIndex(targetIndex + 1);
+                remainingDistance -= distanceToTarget;
+            } else {
+                float ratio = remainingDistance / distanceToTarget;
+                enemy.setPosition(
+                    enemy.getX() + dx * ratio,
+                    enemy.getY() + dy * ratio
+                );
+                remainingDistance = 0f;
+            }
+        }
+        return enemy.getTargetWaypointIndex() >= enemyPath.size();
     }
 
     private static Map<String, Enemy> indexEnemiesById(List<Enemy> enemies) {
@@ -142,5 +202,16 @@ public final class GameFacade {
             indexed.put(enemy.getId(), enemy);
         }
         return indexed;
+    }
+
+    private static List<Vector2> defaultEnemyPath() {
+        List<Vector2> path = new ArrayList<>();
+        path.add(new Vector2(64f, 332f));
+        path.add(new Vector2(220f, 332f));
+        path.add(new Vector2(220f, 220f));
+        path.add(new Vector2(460f, 220f));
+        path.add(new Vector2(460f, 360f));
+        path.add(new Vector2(760f, 360f));
+        return List.copyOf(path);
     }
 }

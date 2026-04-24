@@ -65,10 +65,12 @@ public final class GameScreen extends ScreenAdapter {
         font.draw(batch, "Total spawned: " + level.getTotalSpawnedEnemies(), 24f, Gdx.graphics.getHeight() - 136f);
         font.draw(batch, "Last enemyId: " + level.getLastSpawnedEnemyId(), 24f, Gdx.graphics.getHeight() - 164f);
         font.draw(batch, "Active enemies: " + game.getActiveEnemies().size(), 24f, Gdx.graphics.getHeight() - 192f);
-        font.draw(batch, "Enemies cfg: " + game.getEnemies().size(), 24f, Gdx.graphics.getHeight() - 220f);
-        font.draw(batch, "Towers cfg: " + game.getTowers().size(), 24f, Gdx.graphics.getHeight() - 248f);
-        font.draw(batch, "BuildSlots: " + game.getBuildSlots().size(), 24f, Gdx.graphics.getHeight() - 276f);
-        font.draw(batch, "Gold: " + game.getEconomy().getGold(), 24f, Gdx.graphics.getHeight() - 304f);
+        font.draw(batch, "Escaped enemies: " + level.getEscapedEnemies(), 24f, Gdx.graphics.getHeight() - 220f);
+        font.draw(batch, "Base lives: " + level.getBaseLives(), 24f, Gdx.graphics.getHeight() - 248f);
+        font.draw(batch, "Enemies cfg: " + game.getEnemies().size(), 24f, Gdx.graphics.getHeight() - 276f);
+        font.draw(batch, "Towers cfg: " + game.getTowers().size(), 24f, Gdx.graphics.getHeight() - 304f);
+        font.draw(batch, "BuildSlots: " + game.getBuildSlots().size(), 24f, Gdx.graphics.getHeight() - 332f);
+        font.draw(batch, "Gold: " + game.getEconomy().getGold(), 24f, Gdx.graphics.getHeight() - 360f);
         batch.end();
     }
 
