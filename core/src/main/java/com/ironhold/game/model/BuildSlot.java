@@ -38,4 +38,8 @@ public final class BuildSlot {
     public String getTowerId() {
         return towerId;
     }
+
+    public BuildSlot withTower(String towerId) {
+        return new BuildSlot(slotId, x, y, true, towerId);
+    }
 }
