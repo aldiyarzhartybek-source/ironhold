@@ -7,6 +7,7 @@ import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.EconomyState;
 import com.ironhold.game.model.Enemy;
+import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
 import com.ironhold.game.model.WaveDefinition;
 import com.ironhold.game.screen.ScreenNavigator;
@@ -22,7 +23,7 @@ import java.util.Objects;
  * Единая точка доступа к runtime-сервисам (фасад для экранов и будущих систем).
  */
 public final class GameFacade {
-    private static final float ENEMY_SPEED_MULTIPLIER = 20.0f;
+    private static final float ENEMY_SPEED_MULTIPLIER = 10.0f;
     private static final float BUILD_SLOT_CLICK_RADIUS = 28f;
 
     private final GameContext context;
@@ -37,10 +38,12 @@ public final class GameFacade {
     private final Map<String, Enemy> enemiesById;
     private final Map<String, Tower> towersById;
     private final List<ActiveEnemy> activeEnemies;
+    private final List<PlacedTower> placedTowers;
     private final List<Vector2> enemyPath;
     private int nextEnemyInstanceId;
     private BuildPlacementResult lastBuildPlacementResult;
     private int lastAwardedGold;
+    private int totalKilledEnemies;
 
     public enum BuildPlacementResult {
         OK,
@@ -73,10 +76,12 @@ public final class GameFacade {
         this.enemiesById = indexEnemiesById(this.enemies);
         this.towersById = indexTowersById(this.towers);
         this.activeEnemies = new ArrayList<>();
+        this.placedTowers = new ArrayList<>();
         this.enemyPath = defaultEnemyPath();
         this.nextEnemyInstanceId = 1;
         this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
         this.lastAwardedGold = 0;
+        this.totalKilledEnemies = 0;
     }
 
     public GameContext getContext() {
@@ -119,6 +124,10 @@ public final class GameFacade {
         return List.copyOf(activeEnemies);
     }
 
+    public List<PlacedTower> getPlacedTowers() {
+        return List.copyOf(placedTowers);
+    }
+
     public RuntimeLevelState getRuntimeLevelState() {
         return runtimeLevelState;
     }
@@ -129,6 +138,10 @@ public final class GameFacade {
 
     public int getLastAwardedGold() {
         return lastAwardedGold;
+    }
+
+    public int getTotalKilledEnemies() {
+        return totalKilledEnemies;
     }
 
     public boolean tryPlaceTowerAt(float worldX, float worldY) {
@@ -160,6 +173,15 @@ public final class GameFacade {
             return lastBuildPlacementResult;
         }
         buildSlots.set(slotIndex, slot.withTower(towerId));
+        placedTowers.add(new PlacedTower(
+            slot.getSlotId(),
+            tower.getId(),
+            slot.getX(),
+            slot.getY(),
+            tower.getRange(),
+            tower.getDamage(),
+            tower.getFireRateSec()
+        ));
         lastBuildPlacementResult = BuildPlacementResult.OK;
         return lastBuildPlacementResult;
     }
@@ -169,16 +191,17 @@ public final class GameFacade {
             return false;
         }
         ActiveEnemy defeated = activeEnemies.remove(0);
-        int reward = economy.calculateKillReward(defeated.getReward());
-        economy.addGold(reward);
-        lastAwardedGold = reward;
+        awardKill(defeated);
         return true;
     }
 
     public void startLevel() {
         activeEnemies.clear();
+        placedTowers.clear();
+        resetBuildSlots();
         nextEnemyInstanceId = 1;
         lastAwardedGold = 0;
+        totalKilledEnemies = 0;
         runtimeLevelState.start();
     }
 
@@ -189,6 +212,7 @@ public final class GameFacade {
             spawnEnemy(enemyId);
         }
         updateEnemyMovement(safeDeltaSec);
+        updateTowerCombat(safeDeltaSec);
         if (runtimeLevelState.areAllWavesSpawned()
             && activeEnemies.isEmpty()) {
             runtimeLevelState.markCompletedIfRunning();
@@ -265,6 +289,61 @@ public final class GameFacade {
         return enemy.getTargetWaypointIndex() >= enemyPath.size();
     }
 
+    private void updateTowerCombat(float deltaSec) {
+        if (deltaSec <= 0f || placedTowers.isEmpty() || activeEnemies.isEmpty()) {
+            return;
+        }
+        List<ActiveEnemy> killed = new ArrayList<>();
+        for (PlacedTower tower : placedTowers) {
+            float cooldown = Math.max(0f, tower.getCooldownSec() - deltaSec);
+            tower.setCooldownSec(cooldown);
+            if (cooldown > 0f) {
+                continue;
+            }
+            ActiveEnemy target = findNearestTargetInRange(tower);
+            if (target == null) {
+                continue;
+            }
+            target.setCurrentHp(target.getCurrentHp() - tower.getDamage());
+            tower.setCooldownSec(tower.getFireRateSec());
+            if (target.getCurrentHp() <= 0 && !killed.contains(target)) {
+                killed.add(target);
+            }
+        }
+        if (!killed.isEmpty()) {
+            for (ActiveEnemy enemy : killed) {
+                awardKill(enemy);
+            }
+            activeEnemies.removeAll(killed);
+        }
+    }
+
+    private ActiveEnemy findNearestTargetInRange(PlacedTower tower) {
+        ActiveEnemy best = null;
+        float bestDistanceSq = Float.MAX_VALUE;
+        float rangeSq = tower.getRange() * tower.getRange();
+        for (ActiveEnemy enemy : activeEnemies) {
+            float dx = enemy.getX() - tower.getX();
+            float dy = enemy.getY() - tower.getY();
+            float distanceSq = dx * dx + dy * dy;
+            if (distanceSq > rangeSq) {
+                continue;
+            }
+            if (distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                best = enemy;
+            }
+        }
+        return best;
+    }
+
+    private void awardKill(ActiveEnemy enemy) {
+        int reward = economy.calculateKillReward(enemy.getReward());
+        economy.addGold(reward);
+        lastAwardedGold = reward;
+        totalKilledEnemies++;
+    }
+
     private static Map<String, Enemy> indexEnemiesById(List<Enemy> enemies) {
         Map<String, Enemy> indexed = new HashMap<>();
         for (Enemy enemy : enemies) {
@@ -295,6 +374,13 @@ public final class GameFacade {
             }
         }
         return bestIndex;
+    }
+
+    private void resetBuildSlots() {
+        for (int i = 0; i < buildSlots.size(); i++) {
+            BuildSlot slot = buildSlots.get(i);
+            buildSlots.set(i, new BuildSlot(slot.getSlotId(), slot.getX(), slot.getY(), false, null));
+        }
     }
 
     private static List<Vector2> defaultEnemyPath() {
