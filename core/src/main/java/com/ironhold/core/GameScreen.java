@@ -7,10 +7,12 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.ironhold.game.GameFacade;
 import com.ironhold.game.model.ActiveEnemy;
+import com.ironhold.game.model.BuildSlot;
 import com.ironhold.level.RuntimeLevelState;
 
 import java.util.Objects;
@@ -23,6 +25,8 @@ public final class GameScreen extends ScreenAdapter {
     private final Texture testTexture;
     private final TiledMap map;
     private final OrthogonalTiledMapRenderer mapRenderer;
+    private final Vector3 touchWorld;
+    private boolean lastPlaceAttemptSuccess;
 
     public GameScreen(GameFacade game) {
         this.game = Objects.requireNonNull(game, "game");
@@ -33,6 +37,8 @@ public final class GameScreen extends ScreenAdapter {
         this.testTexture = assetService.getTestTexture();
         this.map = assetService.getLevel0Map();
         this.mapRenderer = new OrthogonalTiledMapRenderer(map, 1f, batch);
+        this.touchWorld = new Vector3();
+        this.lastPlaceAttemptSuccess = false;
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
@@ -43,6 +49,7 @@ public final class GameScreen extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
+        handleBuildPlacementInput();
         game.updateLevel(delta);
         RuntimeLevelState level = game.getRuntimeLevelState();
 
@@ -55,6 +62,10 @@ public final class GameScreen extends ScreenAdapter {
 
         batch.begin();
         batch.draw(testTexture, 24f, 24f, 64f, 64f);
+        for (BuildSlot slot : game.getBuildSlots()) {
+            float slotSize = slot.isOccupied() ? 24f : 16f;
+            batch.draw(testTexture, slot.getX() - slotSize / 2f, slot.getY() - slotSize / 2f, slotSize, slotSize);
+        }
         for (ActiveEnemy enemy : game.getActiveEnemies()) {
             batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
         }
@@ -71,7 +82,17 @@ public final class GameScreen extends ScreenAdapter {
         font.draw(batch, "Towers cfg: " + game.getTowers().size(), 24f, Gdx.graphics.getHeight() - 304f);
         font.draw(batch, "BuildSlots: " + game.getBuildSlots().size(), 24f, Gdx.graphics.getHeight() - 332f);
         font.draw(batch, "Gold: " + game.getEconomy().getGold(), 24f, Gdx.graphics.getHeight() - 360f);
+        font.draw(batch, "Last build attempt: " + (lastPlaceAttemptSuccess ? "OK" : "MISS"), 24f, Gdx.graphics.getHeight() - 388f);
         batch.end();
+    }
+
+    private void handleBuildPlacementInput() {
+        if (!Gdx.input.justTouched()) {
+            return;
+        }
+        touchWorld.set(Gdx.input.getX(), Gdx.input.getY(), 0f);
+        camera.unproject(touchWorld);
+        lastPlaceAttemptSuccess = game.tryPlaceTowerAt(touchWorld.x, touchWorld.y);
     }
 
     @Override
