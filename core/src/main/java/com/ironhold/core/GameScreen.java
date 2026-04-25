@@ -14,6 +14,7 @@ import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.ironhold.game.GameFacade;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.BuildSlot;
+import com.ironhold.game.model.PlacedTower;
 import com.ironhold.level.RuntimeLevelState;
 
 import java.util.Objects;
@@ -66,6 +67,9 @@ public final class GameScreen extends ScreenAdapter {
             float slotSize = slot.isOccupied() ? 24f : 16f;
             batch.draw(testTexture, slot.getX() - slotSize / 2f, slot.getY() - slotSize / 2f, slotSize, slotSize);
         }
+        for (PlacedTower tower : game.getPlacedTowers()) {
+            batch.draw(testTexture, tower.getX() - 12f, tower.getY() - 12f, 24f, 24f);
+        }
         for (ActiveEnemy enemy : game.getActiveEnemies()) {
             batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
         }
@@ -83,7 +87,9 @@ public final class GameScreen extends ScreenAdapter {
         font.draw(batch, "BuildSlots: " + game.getBuildSlots().size(), 24f, Gdx.graphics.getHeight() - 332f);
         font.draw(batch, "Gold: " + game.getEconomy().getGold(), 24f, Gdx.graphics.getHeight() - 360f);
         font.draw(batch, "Build result: " + game.getLastBuildPlacementResult(), 24f, Gdx.graphics.getHeight() - 388f);
-        font.draw(batch, "Last reward: +" + game.getLastAwardedGold() + " (press K to test)", 24f, Gdx.graphics.getHeight() - 416f);
+        font.draw(batch, "Placed towers: " + game.getPlacedTowers().size(), 24f, Gdx.graphics.getHeight() - 416f);
+        font.draw(batch, "Killed enemies: " + game.getTotalKilledEnemies(), 24f, Gdx.graphics.getHeight() - 444f);
+        font.draw(batch, "Last reward: +" + game.getLastAwardedGold() + " (press K to test)", 24f, Gdx.graphics.getHeight() - 472f);
         batch.end();
     }
 
