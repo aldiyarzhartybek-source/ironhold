@@ -28,6 +28,7 @@ public final class GameScreen extends ScreenAdapter {
     private final TiledMap map;
     private final OrthogonalTiledMapRenderer mapRenderer;
     private final Vector3 touchWorld;
+    private final StageHud hud;
 
     public GameScreen(GameFacade game) {
         this.game = Objects.requireNonNull(game, "game");
@@ -39,6 +40,7 @@ public final class GameScreen extends ScreenAdapter {
         this.map = assetService.getLevel0Map();
         this.mapRenderer = new OrthogonalTiledMapRenderer(map, 1f, batch);
         this.touchWorld = new Vector3();
+        this.hud = new StageHud(font, game, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
@@ -73,23 +75,7 @@ public final class GameScreen extends ScreenAdapter {
         for (ActiveEnemy enemy : game.getActiveEnemies()) {
             batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
         }
-        font.draw(batch, "Level status: " + level.getStatus(), 24f, Gdx.graphics.getHeight() - 24f);
-        font.draw(batch, "Wave: " + level.getCurrentWaveNumber() + "/" + level.getTotalWaves(), 24f, Gdx.graphics.getHeight() - 52f);
-        font.draw(batch, "Spawn timer: " + String.format("%.2f", level.getSpawnTimerSec()), 24f, Gdx.graphics.getHeight() - 80f);
-        font.draw(batch, "Wave spawned: " + level.getSpawnedInCurrentWave(), 24f, Gdx.graphics.getHeight() - 108f);
-        font.draw(batch, "Total spawned: " + level.getTotalSpawnedEnemies(), 24f, Gdx.graphics.getHeight() - 136f);
-        font.draw(batch, "Last enemyId: " + level.getLastSpawnedEnemyId(), 24f, Gdx.graphics.getHeight() - 164f);
-        font.draw(batch, "Active enemies: " + game.getActiveEnemies().size(), 24f, Gdx.graphics.getHeight() - 192f);
-        font.draw(batch, "Escaped enemies: " + level.getEscapedEnemies(), 24f, Gdx.graphics.getHeight() - 220f);
-        font.draw(batch, "Base lives: " + level.getBaseLives(), 24f, Gdx.graphics.getHeight() - 248f);
-        font.draw(batch, "Enemies cfg: " + game.getEnemies().size(), 24f, Gdx.graphics.getHeight() - 276f);
-        font.draw(batch, "Towers cfg: " + game.getTowers().size(), 24f, Gdx.graphics.getHeight() - 304f);
-        font.draw(batch, "BuildSlots: " + game.getBuildSlots().size(), 24f, Gdx.graphics.getHeight() - 332f);
-        font.draw(batch, "Gold: " + game.getEconomy().getGold(), 24f, Gdx.graphics.getHeight() - 360f);
-        font.draw(batch, "Build result: " + game.getLastBuildPlacementResult(), 24f, Gdx.graphics.getHeight() - 388f);
-        font.draw(batch, "Placed towers: " + game.getPlacedTowers().size(), 24f, Gdx.graphics.getHeight() - 416f);
-        font.draw(batch, "Killed enemies: " + game.getTotalKilledEnemies(), 24f, Gdx.graphics.getHeight() - 444f);
-        font.draw(batch, "Last reward: +" + game.getLastAwardedGold() + " (press K to test)", 24f, Gdx.graphics.getHeight() - 472f);
+        hud.render(batch, level);
         batch.end();
     }
 
@@ -111,6 +97,7 @@ public final class GameScreen extends ScreenAdapter {
     @Override
     public void resize(int width, int height) {
         camera.setToOrtho(false, width, height);
+        hud.resize(width, height);
     }
 
     @Override
