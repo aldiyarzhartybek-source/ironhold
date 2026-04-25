@@ -39,6 +39,17 @@ public final class GameFacade {
     private final List<ActiveEnemy> activeEnemies;
     private final List<Vector2> enemyPath;
     private int nextEnemyInstanceId;
+    private BuildPlacementResult lastBuildPlacementResult;
+    private int lastAwardedGold;
+
+    public enum BuildPlacementResult {
+        OK,
+        NO_TOWERS_AVAILABLE,
+        TOWER_NOT_FOUND,
+        SLOT_NOT_FOUND,
+        SLOT_OCCUPIED,
+        NOT_ENOUGH_GOLD
+    }
 
     public GameFacade(
         GameContext context,
@@ -64,6 +75,8 @@ public final class GameFacade {
         this.activeEnemies = new ArrayList<>();
         this.enemyPath = defaultEnemyPath();
         this.nextEnemyInstanceId = 1;
+        this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
+        this.lastAwardedGold = 0;
     }
 
     public GameContext getContext() {
@@ -110,32 +123,62 @@ public final class GameFacade {
         return runtimeLevelState;
     }
 
-    public boolean tryPlaceTowerAt(float worldX, float worldY) {
-        if (towers.isEmpty()) {
-            return false;
-        }
-        return tryPlaceTowerAt(worldX, worldY, towers.get(0).getId());
+    public BuildPlacementResult getLastBuildPlacementResult() {
+        return lastBuildPlacementResult;
     }
 
-    public boolean tryPlaceTowerAt(float worldX, float worldY, String towerId) {
-        if (!towersById.containsKey(towerId)) {
+    public int getLastAwardedGold() {
+        return lastAwardedGold;
+    }
+
+    public boolean tryPlaceTowerAt(float worldX, float worldY) {
+        if (towers.isEmpty()) {
+            lastBuildPlacementResult = BuildPlacementResult.NO_TOWERS_AVAILABLE;
             return false;
+        }
+        return tryPlaceTower(worldX, worldY, towers.get(0).getId()) == BuildPlacementResult.OK;
+    }
+
+    public BuildPlacementResult tryPlaceTower(float worldX, float worldY, String towerId) {
+        Tower tower = towersById.get(towerId);
+        if (tower == null) {
+            lastBuildPlacementResult = BuildPlacementResult.TOWER_NOT_FOUND;
+            return lastBuildPlacementResult;
         }
         int slotIndex = findNearestBuildSlotIndex(worldX, worldY, BUILD_SLOT_CLICK_RADIUS);
         if (slotIndex < 0) {
-            return false;
+            lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
+            return lastBuildPlacementResult;
         }
         BuildSlot slot = buildSlots.get(slotIndex);
         if (slot.isOccupied()) {
-            return false;
+            lastBuildPlacementResult = BuildPlacementResult.SLOT_OCCUPIED;
+            return lastBuildPlacementResult;
+        }
+        if (!economy.trySpend(tower.getCost())) {
+            lastBuildPlacementResult = BuildPlacementResult.NOT_ENOUGH_GOLD;
+            return lastBuildPlacementResult;
         }
         buildSlots.set(slotIndex, slot.withTower(towerId));
+        lastBuildPlacementResult = BuildPlacementResult.OK;
+        return lastBuildPlacementResult;
+    }
+
+    public boolean debugDefeatFirstEnemy() {
+        if (activeEnemies.isEmpty()) {
+            return false;
+        }
+        ActiveEnemy defeated = activeEnemies.remove(0);
+        int reward = economy.calculateKillReward(defeated.getReward());
+        economy.addGold(reward);
+        lastAwardedGold = reward;
         return true;
     }
 
     public void startLevel() {
         activeEnemies.clear();
         nextEnemyInstanceId = 1;
+        lastAwardedGold = 0;
         runtimeLevelState.start();
     }
 
