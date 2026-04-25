@@ -23,6 +23,7 @@ import java.util.Objects;
  */
 public final class GameFacade {
     private static final float ENEMY_SPEED_MULTIPLIER = 20.0f;
+    private static final float BUILD_SLOT_CLICK_RADIUS = 28f;
 
     private final GameContext context;
     private final AssetService assets;
@@ -34,6 +35,7 @@ public final class GameFacade {
     private final EconomyState economy;
     private final RuntimeLevelState runtimeLevelState;
     private final Map<String, Enemy> enemiesById;
+    private final Map<String, Tower> towersById;
     private final List<ActiveEnemy> activeEnemies;
     private final List<Vector2> enemyPath;
     private int nextEnemyInstanceId;
@@ -54,10 +56,11 @@ public final class GameFacade {
         this.enemies = List.copyOf(Objects.requireNonNull(enemies, "enemies"));
         this.towers = List.copyOf(Objects.requireNonNull(towers, "towers"));
         this.waves = List.copyOf(Objects.requireNonNull(waves, "waves"));
-        this.buildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
+        this.buildSlots = new ArrayList<>(Objects.requireNonNull(buildSlots, "buildSlots"));
         this.economy = Objects.requireNonNull(economy, "economy");
         this.runtimeLevelState = new RuntimeLevelState(this.waves);
         this.enemiesById = indexEnemiesById(this.enemies);
+        this.towersById = indexTowersById(this.towers);
         this.activeEnemies = new ArrayList<>();
         this.enemyPath = defaultEnemyPath();
         this.nextEnemyInstanceId = 1;
@@ -92,7 +95,7 @@ public final class GameFacade {
     }
 
     public List<BuildSlot> getBuildSlots() {
-        return buildSlots;
+        return List.copyOf(buildSlots);
     }
 
     public EconomyState getEconomy() {
@@ -105,6 +108,29 @@ public final class GameFacade {
 
     public RuntimeLevelState getRuntimeLevelState() {
         return runtimeLevelState;
+    }
+
+    public boolean tryPlaceTowerAt(float worldX, float worldY) {
+        if (towers.isEmpty()) {
+            return false;
+        }
+        return tryPlaceTowerAt(worldX, worldY, towers.get(0).getId());
+    }
+
+    public boolean tryPlaceTowerAt(float worldX, float worldY, String towerId) {
+        if (!towersById.containsKey(towerId)) {
+            return false;
+        }
+        int slotIndex = findNearestBuildSlotIndex(worldX, worldY, BUILD_SLOT_CLICK_RADIUS);
+        if (slotIndex < 0) {
+            return false;
+        }
+        BuildSlot slot = buildSlots.get(slotIndex);
+        if (slot.isOccupied()) {
+            return false;
+        }
+        buildSlots.set(slotIndex, slot.withTower(towerId));
+        return true;
     }
 
     public void startLevel() {
@@ -202,6 +228,30 @@ public final class GameFacade {
             indexed.put(enemy.getId(), enemy);
         }
         return indexed;
+    }
+
+    private static Map<String, Tower> indexTowersById(List<Tower> towers) {
+        Map<String, Tower> indexed = new HashMap<>();
+        for (Tower tower : towers) {
+            indexed.put(tower.getId(), tower);
+        }
+        return indexed;
+    }
+
+    private int findNearestBuildSlotIndex(float worldX, float worldY, float radius) {
+        float bestDistanceSq = radius * radius;
+        int bestIndex = -1;
+        for (int i = 0; i < buildSlots.size(); i++) {
+            BuildSlot slot = buildSlots.get(i);
+            float dx = worldX - slot.getX();
+            float dy = worldY - slot.getY();
+            float distanceSq = dx * dx + dy * dy;
+            if (distanceSq <= bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                bestIndex = i;
+            }
+        }
+        return bestIndex;
     }
 
     private static List<Vector2> defaultEnemyPath() {
