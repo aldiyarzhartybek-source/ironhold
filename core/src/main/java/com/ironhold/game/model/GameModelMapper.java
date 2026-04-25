@@ -13,6 +13,7 @@ import java.util.Objects;
  * Maps JSON DTO config objects to runtime domain skeletons.
  */
 public final class GameModelMapper {
+    private static final float TILE_SIZE_PX = 64f;
 
     private GameModelMapper() {
     }
@@ -30,7 +31,13 @@ public final class GameModelMapper {
         Objects.requireNonNull(config, "config");
         List<Tower> result = new ArrayList<>();
         for (TowerConfigDto tower : config.getTowers().towers) {
-            result.add(new Tower(tower.id, tower.cost, tower.range, tower.damage, tower.fireRateSec));
+            result.add(new Tower(
+                tower.id,
+                tower.cost,
+                tower.range * TILE_SIZE_PX,
+                tower.damage,
+                tower.fireRateSec
+            ));
         }
         return result;
     }
