@@ -155,8 +155,34 @@ public final class GameFacade {
         return eventTracker;
     }
 
+    public GameRuntimeView getRuntimeView() {
+        return new GameRuntimeView(
+            runtimeLevelState,
+            buildSlots,
+            placedTowers,
+            activeEnemies,
+            economy.getGold(),
+            lastBuildPlacementResult,
+            totalKilledEnemies,
+            lastAwardedGold,
+            eventTracker.getEnemySpawnedEvents(),
+            eventTracker.getEnemyKilledEvents(),
+            eventTracker.getTowerBuiltEvents(),
+            eventTracker.getWaveStartedEvents(),
+            eventTracker.getWaveCompletedEvents()
+        );
+    }
+
     public void dispose() {
         eventTracker.dispose();
+    }
+
+    public void handlePrimaryAction(float worldX, float worldY) {
+        tryPlaceTowerAt(worldX, worldY);
+    }
+
+    public void handleDebugKillAction() {
+        debugDefeatFirstEnemy();
     }
 
     public boolean tryPlaceTowerAt(float worldX, float worldY) {

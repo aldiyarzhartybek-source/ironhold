@@ -12,10 +12,10 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.ironhold.game.GameFacade;
+import com.ironhold.game.GameRuntimeView;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.PlacedTower;
-import com.ironhold.level.RuntimeLevelState;
 
 import java.util.Objects;
 
@@ -40,7 +40,7 @@ public final class GameScreen extends ScreenAdapter {
         this.map = assetService.getLevel0Map();
         this.mapRenderer = new OrthogonalTiledMapRenderer(map, 1f, batch);
         this.touchWorld = new Vector3();
-        this.hud = new StageHud(font, game, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
@@ -54,7 +54,7 @@ public final class GameScreen extends ScreenAdapter {
         handleBuildPlacementInput();
         handleDebugEnemyKillInput();
         game.updateLevel(delta);
-        RuntimeLevelState level = game.getRuntimeLevelState();
+        GameRuntimeView view = game.getRuntimeView();
 
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -65,17 +65,17 @@ public final class GameScreen extends ScreenAdapter {
 
         batch.begin();
         batch.draw(testTexture, 24f, 24f, 64f, 64f);
-        for (BuildSlot slot : game.getBuildSlots()) {
+        for (BuildSlot slot : view.getBuildSlots()) {
             float slotSize = slot.isOccupied() ? 24f : 16f;
             batch.draw(testTexture, slot.getX() - slotSize / 2f, slot.getY() - slotSize / 2f, slotSize, slotSize);
         }
-        for (PlacedTower tower : game.getPlacedTowers()) {
+        for (PlacedTower tower : view.getPlacedTowers()) {
             batch.draw(testTexture, tower.getX() - 12f, tower.getY() - 12f, 24f, 24f);
         }
-        for (ActiveEnemy enemy : game.getActiveEnemies()) {
+        for (ActiveEnemy enemy : view.getActiveEnemies()) {
             batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
         }
-        hud.render(batch, level);
+        hud.render(batch, view);
         batch.end();
     }
 
@@ -85,12 +85,12 @@ public final class GameScreen extends ScreenAdapter {
         }
         touchWorld.set(Gdx.input.getX(), Gdx.input.getY(), 0f);
         camera.unproject(touchWorld);
-        game.tryPlaceTowerAt(touchWorld.x, touchWorld.y);
+        game.handlePrimaryAction(touchWorld.x, touchWorld.y);
     }
 
     private void handleDebugEnemyKillInput() {
         if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
-            game.debugDefeatFirstEnemy();
+            game.handleDebugKillAction();
         }
     }
 
