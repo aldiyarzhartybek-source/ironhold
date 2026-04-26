@@ -60,5 +60,10 @@ public final class StageHud {
         font.draw(batch, "Placed towers: " + game.getPlacedTowers().size(), LEFT_X, baseY - LINE_HEIGHT * 6f);
         font.draw(batch, "Killed enemies: " + game.getTotalKilledEnemies(), LEFT_X, baseY - LINE_HEIGHT * 7f);
         font.draw(batch, "Last reward: +" + game.getLastAwardedGold() + " (press K to test)", LEFT_X, baseY - LINE_HEIGHT * 8f);
+        font.draw(batch, "Event EnemySpawned: " + game.getEventTracker().getEnemySpawnedEvents(), LEFT_X, baseY - LINE_HEIGHT * 9f);
+        font.draw(batch, "Event EnemyKilled: " + game.getEventTracker().getEnemyKilledEvents(), LEFT_X, baseY - LINE_HEIGHT * 10f);
+        font.draw(batch, "Event TowerBuilt: " + game.getEventTracker().getTowerBuiltEvents(), LEFT_X, baseY - LINE_HEIGHT * 11f);
+        font.draw(batch, "Event WaveStarted: " + game.getEventTracker().getWaveStartedEvents(), LEFT_X, baseY - LINE_HEIGHT * 12f);
+        font.draw(batch, "Event WaveCompleted: " + game.getEventTracker().getWaveCompletedEvents(), LEFT_X, baseY - LINE_HEIGHT * 13f);
     }
 }

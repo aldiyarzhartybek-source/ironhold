@@ -18,6 +18,8 @@ public final class RuntimeLevelState {
     private float spawnTimerSec;
     private String lastSpawnedEnemyId;
     private final List<String> pendingSpawnEnemyIds;
+    private final List<Integer> pendingWaveStartedNumbers;
+    private final List<Integer> pendingWaveCompletedNumbers;
     private boolean allWavesSpawned;
 
     public RuntimeLevelState(List<WaveDefinition> waves) {
@@ -31,6 +33,8 @@ public final class RuntimeLevelState {
         this.spawnTimerSec = 0f;
         this.lastSpawnedEnemyId = "";
         this.pendingSpawnEnemyIds = new ArrayList<>();
+        this.pendingWaveStartedNumbers = new ArrayList<>();
+        this.pendingWaveCompletedNumbers = new ArrayList<>();
         this.allWavesSpawned = false;
     }
 
@@ -52,6 +56,9 @@ public final class RuntimeLevelState {
         spawnTimerSec = 0f;
         lastSpawnedEnemyId = "";
         pendingSpawnEnemyIds.clear();
+        pendingWaveStartedNumbers.clear();
+        pendingWaveCompletedNumbers.clear();
+        pendingWaveStartedNumbers.add(1);
         allWavesSpawned = false;
     }
 
@@ -77,9 +84,14 @@ public final class RuntimeLevelState {
         }
 
         if (spawnedInCurrentWave >= currentWave.getCount()) {
+            int completedWaveNumber = currentWaveIndex + 1;
             currentWaveIndex++;
             spawnedInCurrentWave = 0;
             spawnTimerSec = 0f;
+            pendingWaveCompletedNumbers.add(completedWaveNumber);
+            if (hasCurrentWave()) {
+                pendingWaveStartedNumbers.add(currentWaveIndex + 1);
+            }
             if (!hasCurrentWave()) {
                 allWavesSpawned = true;
             }
@@ -132,6 +144,24 @@ public final class RuntimeLevelState {
         List<String> spawned = List.copyOf(pendingSpawnEnemyIds);
         pendingSpawnEnemyIds.clear();
         return spawned;
+    }
+
+    public List<Integer> consumePendingWaveStartedNumbers() {
+        if (pendingWaveStartedNumbers.isEmpty()) {
+            return List.of();
+        }
+        List<Integer> started = List.copyOf(pendingWaveStartedNumbers);
+        pendingWaveStartedNumbers.clear();
+        return started;
+    }
+
+    public List<Integer> consumePendingWaveCompletedNumbers() {
+        if (pendingWaveCompletedNumbers.isEmpty()) {
+            return List.of();
+        }
+        List<Integer> completed = List.copyOf(pendingWaveCompletedNumbers);
+        pendingWaveCompletedNumbers.clear();
+        return completed;
     }
 
     public void onEnemyEscaped() {

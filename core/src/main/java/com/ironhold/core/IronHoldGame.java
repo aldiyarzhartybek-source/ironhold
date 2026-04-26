@@ -49,6 +49,7 @@ public class IronHoldGame extends Game {
     @Override
     public void dispose() {
         super.dispose();
+        facade.dispose();
         facade.getEventBus().clear();
         assets.dispose();
     }

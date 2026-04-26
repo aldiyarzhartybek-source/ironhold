@@ -2,7 +2,12 @@ package com.ironhold.game;
 
 import com.badlogic.gdx.math.Vector2;
 import com.ironhold.assets.AssetService;
+import com.ironhold.events.EnemyKilledEvent;
+import com.ironhold.events.EnemySpawnedEvent;
 import com.ironhold.events.EventBus;
+import com.ironhold.events.TowerBuiltEvent;
+import com.ironhold.events.WaveCompletedEvent;
+import com.ironhold.events.WaveStartedEvent;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.EconomyState;
@@ -44,6 +49,7 @@ public final class GameFacade {
     private BuildPlacementResult lastBuildPlacementResult;
     private int lastAwardedGold;
     private int totalKilledEnemies;
+    private final GameplayEventTracker eventTracker;
 
     public enum BuildPlacementResult {
         OK,
@@ -82,6 +88,7 @@ public final class GameFacade {
         this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
         this.lastAwardedGold = 0;
         this.totalKilledEnemies = 0;
+        this.eventTracker = new GameplayEventTracker(getEventBus());
     }
 
     public GameContext getContext() {
@@ -144,6 +151,14 @@ public final class GameFacade {
         return totalKilledEnemies;
     }
 
+    public GameplayEventTracker getEventTracker() {
+        return eventTracker;
+    }
+
+    public void dispose() {
+        eventTracker.dispose();
+    }
+
     public boolean tryPlaceTowerAt(float worldX, float worldY) {
         if (towers.isEmpty()) {
             lastBuildPlacementResult = BuildPlacementResult.NO_TOWERS_AVAILABLE;
@@ -183,6 +198,7 @@ public final class GameFacade {
             tower.getFireRateSec()
         ));
         lastBuildPlacementResult = BuildPlacementResult.OK;
+        getEventBus().publish(new TowerBuiltEvent(tower.getId(), slot.getSlotId(), tower.getCost()));
         return lastBuildPlacementResult;
     }
 
@@ -203,11 +219,13 @@ public final class GameFacade {
         lastAwardedGold = 0;
         totalKilledEnemies = 0;
         runtimeLevelState.start();
+        publishPendingWaveEvents();
     }
 
     public void updateLevel(float deltaSec) {
         float safeDeltaSec = Math.max(0f, deltaSec);
         runtimeLevelState.update(safeDeltaSec);
+        publishPendingWaveEvents();
         for (String enemyId : runtimeLevelState.consumePendingSpawnEnemyIds()) {
             spawnEnemy(enemyId);
         }
@@ -237,6 +255,11 @@ public final class GameFacade {
             1
         );
         activeEnemies.add(enemy);
+        getEventBus().publish(new EnemySpawnedEvent(
+            enemy.getRuntimeId(),
+            enemy.getEnemyId(),
+            runtimeLevelState.getCurrentWaveNumber()
+        ));
     }
 
     private void updateEnemyMovement(float deltaSec) {
@@ -342,6 +365,16 @@ public final class GameFacade {
         economy.addGold(reward);
         lastAwardedGold = reward;
         totalKilledEnemies++;
+        getEventBus().publish(new EnemyKilledEvent(enemy.getRuntimeId(), enemy.getEnemyId(), reward));
+    }
+
+    private void publishPendingWaveEvents() {
+        for (int waveNumber : runtimeLevelState.consumePendingWaveStartedNumbers()) {
+            getEventBus().publish(new WaveStartedEvent(waveNumber, runtimeLevelState.getTotalWaves()));
+        }
+        for (int waveNumber : runtimeLevelState.consumePendingWaveCompletedNumbers()) {
+            getEventBus().publish(new WaveCompletedEvent(waveNumber, runtimeLevelState.getTotalWaves()));
+        }
     }
 
     private static Map<String, Enemy> indexEnemiesById(List<Enemy> enemies) {
