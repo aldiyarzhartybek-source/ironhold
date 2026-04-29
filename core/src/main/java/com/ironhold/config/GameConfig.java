@@ -12,19 +12,48 @@ import com.ironhold.config.dto.WaveEntryDto;
 import com.ironhold.config.dto.WavesConfigDto;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
  * Aggregates balance configs loaded from JSON files into DTOs.
  */
 public final class GameConfig {
+    private static final String TAG = "GameConfig";
 
     private static final String ENEMIES_PATH = "config/enemies.json";
     private static final String TOWERS_PATH = "config/towers.json";
     private static final String WAVES_PATH = "config/waves.json";
     private static final String ECONOMY_PATH = "config/economy.json";
+
+    private static final int MIN_ENEMY_HP = 1;
+    private static final int MAX_ENEMY_HP = 10_000;
+    private static final float MIN_ENEMY_SPEED = 0.1f;
+    private static final float MAX_ENEMY_SPEED = 20f;
+    private static final int MIN_ENEMY_REWARD = 0;
+    private static final int MAX_ENEMY_REWARD = 1_000;
+
+    private static final int MIN_TOWER_COST = 0;
+    private static final int MAX_TOWER_COST = 2_000;
+    private static final float MIN_TOWER_RANGE = 0.75f;
+    private static final float MAX_TOWER_RANGE = 8.0f;
+    private static final int MIN_TOWER_DAMAGE = 1;
+    private static final int MAX_TOWER_DAMAGE = 500;
+    private static final float MIN_TOWER_FIRE_RATE_SEC = 0.15f;
+    private static final float MAX_TOWER_FIRE_RATE_SEC = 5.0f;
+
+    private static final int MIN_WAVE_COUNT = 1;
+    private static final int MAX_WAVE_COUNT = 100;
+    private static final float MIN_WAVE_SPAWN_INTERVAL_SEC = 0.15f;
+    private static final float MAX_WAVE_SPAWN_INTERVAL_SEC = 5.0f;
+
+    private static final int MIN_STARTING_GOLD = 0;
+    private static final int MAX_STARTING_GOLD = 2_000;
+    private static final float MIN_KILL_REWARD_MULTIPLIER = 0.25f;
+    private static final float MAX_KILL_REWARD_MULTIPLIER = 3.0f;
 
     private final EnemiesConfigDto enemies;
     private final TowersConfigDto towers;
@@ -64,15 +93,11 @@ public final class GameConfig {
         ensureNonEmpty(enemies.enemies, defaultEnemies().enemies);
         ensureNonEmpty(towers.towers, defaultTowers().towers);
         ensureNonEmpty(waves.waves, defaultWaves().waves);
-        if (economy.startingGold < 0) {
-            economy.startingGold = 150;
-        }
-        if (economy.killRewardMultiplier <= 0f) {
-            economy.killRewardMultiplier = 1f;
-        }
-        if (economy.buildRefundRate < 0f || economy.buildRefundRate > 1f) {
-            economy.buildRefundRate = 0.5f;
-        }
+
+        sanitizeEnemies(enemies);
+        sanitizeTowers(towers);
+        sanitizeWaves(waves, enemies);
+        sanitizeEconomy(economy);
 
         return new GameConfig(enemies, towers, waves, economy);
     }
@@ -116,6 +141,128 @@ public final class GameConfig {
             return;
         }
         target.addAll(fallback);
+    }
+
+    private static void sanitizeEnemies(EnemiesConfigDto enemies) {
+        Set<String> usedIds = new HashSet<>();
+        for (int i = 0; i < enemies.enemies.size(); i++) {
+            EnemyConfigDto enemy = enemies.enemies.get(i);
+            EnemyConfigDto fallback = defaultEnemies().enemies.get(0);
+            String id = normalizeId(enemy.id, "enemy", i);
+            if (usedIds.contains(id)) {
+                String uniqueId = id + "_" + (i + 1);
+                warn("Duplicate enemy id '" + id + "', renamed to '" + uniqueId + "'");
+                id = uniqueId;
+            }
+            usedIds.add(id);
+            enemy.id = id;
+            enemy.hp = clampInt(enemy.hp, MIN_ENEMY_HP, MAX_ENEMY_HP, fallback.hp, "enemy.hp(" + id + ")");
+            enemy.speed = clampFloat(enemy.speed, MIN_ENEMY_SPEED, MAX_ENEMY_SPEED, fallback.speed, "enemy.speed(" + id + ")");
+            enemy.reward = clampInt(enemy.reward, MIN_ENEMY_REWARD, MAX_ENEMY_REWARD, fallback.reward, "enemy.reward(" + id + ")");
+        }
+    }
+
+    private static void sanitizeTowers(TowersConfigDto towers) {
+        Set<String> usedIds = new HashSet<>();
+        for (int i = 0; i < towers.towers.size(); i++) {
+            TowerConfigDto tower = towers.towers.get(i);
+            TowerConfigDto fallback = defaultTowers().towers.get(0);
+            String id = normalizeId(tower.id, "tower", i);
+            if (usedIds.contains(id)) {
+                String uniqueId = id + "_" + (i + 1);
+                warn("Duplicate tower id '" + id + "', renamed to '" + uniqueId + "'");
+                id = uniqueId;
+            }
+            usedIds.add(id);
+            tower.id = id;
+            tower.cost = clampInt(tower.cost, MIN_TOWER_COST, MAX_TOWER_COST, fallback.cost, "tower.cost(" + id + ")");
+            tower.range = clampFloat(tower.range, MIN_TOWER_RANGE, MAX_TOWER_RANGE, fallback.range, "tower.range(" + id + ")");
+            tower.damage = clampInt(tower.damage, MIN_TOWER_DAMAGE, MAX_TOWER_DAMAGE, fallback.damage, "tower.damage(" + id + ")");
+            tower.fireRateSec = clampFloat(tower.fireRateSec, MIN_TOWER_FIRE_RATE_SEC, MAX_TOWER_FIRE_RATE_SEC, fallback.fireRateSec, "tower.fireRateSec(" + id + ")");
+        }
+    }
+
+    private static void sanitizeWaves(WavesConfigDto waves, EnemiesConfigDto enemies) {
+        Set<String> enemyIds = new HashSet<>();
+        for (EnemyConfigDto enemy : enemies.enemies) {
+            enemyIds.add(enemy.id);
+        }
+        String defaultEnemyId = enemies.enemies.get(0).id;
+        for (int i = 0; i < waves.waves.size(); i++) {
+            WaveEntryDto wave = waves.waves.get(i);
+            WaveEntryDto fallback = defaultWaves().waves.get(0);
+            String enemyId = normalizeId(wave.enemyId, "wave_enemy", i);
+            if (!enemyIds.contains(enemyId)) {
+                warn("wave.enemyId('" + enemyId + "') does not exist, fallback to '" + defaultEnemyId + "'");
+                wave.enemyId = defaultEnemyId;
+            } else {
+                wave.enemyId = enemyId;
+            }
+            wave.count = clampInt(wave.count, MIN_WAVE_COUNT, MAX_WAVE_COUNT, fallback.count, "wave.count(index=" + i + ")");
+            wave.spawnIntervalSec = clampFloat(
+                wave.spawnIntervalSec,
+                MIN_WAVE_SPAWN_INTERVAL_SEC,
+                MAX_WAVE_SPAWN_INTERVAL_SEC,
+                fallback.spawnIntervalSec,
+                "wave.spawnIntervalSec(index=" + i + ")"
+            );
+        }
+    }
+
+    private static void sanitizeEconomy(EconomyConfigDto economy) {
+        EconomyConfigDto fallback = defaultEconomy();
+        economy.startingGold = clampInt(
+            economy.startingGold,
+            MIN_STARTING_GOLD,
+            MAX_STARTING_GOLD,
+            fallback.startingGold,
+            "economy.startingGold"
+        );
+        economy.killRewardMultiplier = clampFloat(
+            economy.killRewardMultiplier,
+            MIN_KILL_REWARD_MULTIPLIER,
+            MAX_KILL_REWARD_MULTIPLIER,
+            fallback.killRewardMultiplier,
+            "economy.killRewardMultiplier"
+        );
+        if (economy.buildRefundRate < 0f || economy.buildRefundRate > 1f) {
+            warn("economy.buildRefundRate out of range [0..1], fallback to " + fallback.buildRefundRate);
+            economy.buildRefundRate = fallback.buildRefundRate;
+        }
+    }
+
+    private static String normalizeId(String rawId, String fallbackPrefix, int index) {
+        String trimmed = rawId == null ? "" : rawId.trim();
+        if (!trimmed.isEmpty()) {
+            return trimmed;
+        }
+        String fallback = fallbackPrefix + "_" + (index + 1);
+        warn("Empty id found, fallback to '" + fallback + "'");
+        return fallback;
+    }
+
+    private static int clampInt(int value, int min, int max, int fallback, String fieldName) {
+        if (value < min || value > max) {
+            int clamped = Math.max(min, Math.min(max, fallback));
+            warn(fieldName + " out of range [" + min + ".." + max + "], fallback to " + clamped);
+            return clamped;
+        }
+        return value;
+    }
+
+    private static float clampFloat(float value, float min, float max, float fallback, String fieldName) {
+        if (Float.isNaN(value) || Float.isInfinite(value) || value < min || value > max) {
+            float clamped = Math.max(min, Math.min(max, fallback));
+            warn(fieldName + " out of range [" + min + ".." + max + "], fallback to " + clamped);
+            return clamped;
+        }
+        return value;
+    }
+
+    private static void warn(String message) {
+        if (Gdx.app != null) {
+            Gdx.app.log(TAG, message);
+        }
     }
 
     private static EnemiesConfigDto defaultEnemies() {
