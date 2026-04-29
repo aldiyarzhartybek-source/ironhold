@@ -39,27 +39,14 @@ public final class RuntimeLevelState {
     }
 
     public void start() {
-        if (status != LevelStatus.IDLE) {
-            return;
-        }
+        resetForNewRun();
         if (waves.isEmpty()) {
             status = LevelStatus.COMPLETED;
             allWavesSpawned = true;
             return;
         }
         status = LevelStatus.RUNNING;
-        currentWaveIndex = 0;
-        spawnedInCurrentWave = 0;
-        totalSpawnedEnemies = 0;
-        escapedEnemies = 0;
-        baseLives = 20;
-        spawnTimerSec = 0f;
-        lastSpawnedEnemyId = "";
-        pendingSpawnEnemyIds.clear();
-        pendingWaveStartedNumbers.clear();
-        pendingWaveCompletedNumbers.clear();
         pendingWaveStartedNumbers.add(1);
-        allWavesSpawned = false;
     }
 
     public void update(float deltaSec) {
@@ -183,6 +170,21 @@ public final class RuntimeLevelState {
         if (status == LevelStatus.RUNNING) {
             status = LevelStatus.COMPLETED;
         }
+    }
+
+    private void resetForNewRun() {
+        status = LevelStatus.IDLE;
+        currentWaveIndex = 0;
+        spawnedInCurrentWave = 0;
+        totalSpawnedEnemies = 0;
+        escapedEnemies = 0;
+        baseLives = 20;
+        spawnTimerSec = 0f;
+        lastSpawnedEnemyId = "";
+        pendingSpawnEnemyIds.clear();
+        pendingWaveStartedNumbers.clear();
+        pendingWaveCompletedNumbers.clear();
+        allWavesSpawned = false;
     }
 
     private boolean hasCurrentWave() {
