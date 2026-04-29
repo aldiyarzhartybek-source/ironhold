@@ -1,18 +1,22 @@
 # IronHold
 
-IronHold — прототип tower defense на Java + LibGDX (Stage 0 baseline).
+IronHold — прототип tower defense на Java + LibGDX (Stage 1 MVP gameplay loop).
 
-## Текущий статус (Stage 0)
+## Текущий статус (Stage 1)
 
-На текущем этапе реализованы базовые вещи:
+На текущем этапе реализованы:
 
-- desktop/core структура проекта на Gradle
-- базовые экраны: `Loading -> Menu -> Game`
-- UI меню через Scene2D (`Stage`, `Skin`, `Label`, `TextButton`)
-- централизованная загрузка ассетов через `AssetService`
-- загрузка базовых JSON-конфигов (`enemies`, `towers`, `waves`, `economy`)
-- каркас EventBus и GameFacade
-- доменные модели-заглушки (Enemy, Tower, BuildSlot, WaveDefinition, EconomyState)
+- запуск игрового цикла `Loading -> Menu -> Game`
+- `RuntimeLevelState` со статусами `IDLE/RUNNING/COMPLETED/FAILED`
+- спавн врагов из `waves.json` (`enemyId`, `count`, `spawnIntervalSec`)
+- движение врагов по waypoint-пути и списание жизней базы на выходе
+- установка башен по клику на `BuildSlot`
+- базовая экономика (`gold`): списание за постройку, награда за убийство
+- таргетинг башен, стрельба по `fireRateSec`, убийство врагов и удаление из уровня
+- HUD Stage UI (основные метрики + debug-индикаторы)
+- win/lose overlay с действиями `Restart` / `Back to menu`
+- игровая EventBus-интеграция (`EnemySpawned`, `EnemyKilled`, `TowerBuilt`, `WaveStarted`, `WaveCompleted`)
+- валидация и fallback конфигов Stage 1 (диапазоны, автоисправления, warning-логи)
 
 ## Технологии
 
@@ -31,37 +35,28 @@ IronHold — прототип tower defense на Java + LibGDX (Stage 0 baseline
 ### Требования
 
 - Установленная JDK 11+
-- Gradle wrapper (`./gradlew`) уже в репозитории
+- Gradle wrapper (`./gradlew`)
 
-### Запуск
 
-```bash
-./gradlew :lwjgl3:run
-```
+## Что работает в MVP
 
-## Базовый smoke-check
+- Вход в игровой экран через меню.
+- Автостарт уровня при открытии `GameScreen`.
+- Полный wave loop: spawn -> move -> tower combat -> kill/escape -> complete/fail.
+- Постройка башен на слотах с проверкой золота.
+- Обновление HUD в реальном времени.
+- Завершение уровня с понятным состоянием и возможностью перезапуска.
 
-1. Игра стартует без падений.
-2. После loading открывается menu.
-3. Кнопка **Start** открывает `GameScreen`.
-4. Кнопка **Exit** закрывает приложение.
-5. На `GameScreen` отображаются placeholder-данные (в т.ч. доменные счетчики).
+## Ограничения текущего MVP
 
-## Платформы
+- Визуал и анимации пока в placeholder-стиле (без финального арта и VFX).
+- В боевой системе нет продвинутых механик (типов урона, снарядов, эффектов статусов, приоритетов целей).
+- UI ориентирован на отладку Stage 1 (часть полей debug).
+- Баланс носит MVP-характер и требует последующей итерации.
 
-Текущий фокус Stage 0:
-- macOS
-- Windows
+## Дальше (после Stage 1)
 
-## Ограничения текущего этапа
-
-- Механики tower defense в полном виде еще не реализованы.
-- Большая часть систем пока в формате каркаса/заглушек для следующего этапа.
-
-## Дальше
-
-README будет уточняться по мере реализации следующих задач:
-- расширение систем уровня
-- события/состояния
-- боевые и экономические механики
-- контент и баланс
+- визуальная полировка сцены и HUD
+- расширение боевой системы башен/врагов
+- углубление контента, баланса и UX
+- автотесты ключевых сценариев gameplay loop
