@@ -30,6 +30,10 @@ import java.util.Objects;
 public final class GameFacade {
     private static final float ENEMY_SPEED_MULTIPLIER = 10.0f;
     private static final float BUILD_SLOT_CLICK_RADIUS = 28f;
+    private static final float MIN_RUNTIME_ENEMY_SPEED = 0.1f;
+    private static final float MIN_RUNTIME_TOWER_RANGE = 16f;
+    private static final int MIN_RUNTIME_TOWER_DAMAGE = 1;
+    private static final float MIN_RUNTIME_TOWER_FIRE_RATE_SEC = 0.1f;
 
     private final GameContext context;
     private final AssetService assets;
@@ -219,9 +223,9 @@ public final class GameFacade {
             tower.getId(),
             slot.getX(),
             slot.getY(),
-            tower.getRange(),
-            tower.getDamage(),
-            tower.getFireRateSec()
+            Math.max(MIN_RUNTIME_TOWER_RANGE, tower.getRange()),
+            Math.max(MIN_RUNTIME_TOWER_DAMAGE, tower.getDamage()),
+            Math.max(MIN_RUNTIME_TOWER_FIRE_RATE_SEC, tower.getFireRateSec())
         ));
         lastBuildPlacementResult = BuildPlacementResult.OK;
         getEventBus().publish(new TowerBuiltEvent(tower.getId(), slot.getSlotId(), tower.getCost()));
@@ -307,7 +311,8 @@ public final class GameFacade {
     }
 
     private boolean advanceEnemyAlongPath(ActiveEnemy enemy, float deltaSec) {
-        float remainingDistance = enemy.getSpeed() * ENEMY_SPEED_MULTIPLIER * deltaSec;
+        float safeSpeed = Math.max(MIN_RUNTIME_ENEMY_SPEED, enemy.getSpeed());
+        float remainingDistance = safeSpeed * ENEMY_SPEED_MULTIPLIER * deltaSec;
         while (remainingDistance > 0f) {
             int targetIndex = enemy.getTargetWaypointIndex();
             if (targetIndex >= enemyPath.size()) {
