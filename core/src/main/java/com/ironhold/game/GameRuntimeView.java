@@ -1,5 +1,6 @@
 package com.ironhold.game;
 
+import com.badlogic.gdx.math.Vector2;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.PlacedTower;
@@ -26,6 +27,7 @@ public final class GameRuntimeView {
     private final int towerBuiltEvents;
     private final int waveStartedEvents;
     private final int waveCompletedEvents;
+    private final List<Vector2> enemyPath;
 
     public GameRuntimeView(
         RuntimeLevelState levelState,
@@ -40,7 +42,8 @@ public final class GameRuntimeView {
         int enemyKilledEvents,
         int towerBuiltEvents,
         int waveStartedEvents,
-        int waveCompletedEvents
+        int waveCompletedEvents,
+        List<Vector2> enemyPath
     ) {
         this.levelState = Objects.requireNonNull(levelState, "levelState");
         this.buildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
@@ -55,6 +58,7 @@ public final class GameRuntimeView {
         this.towerBuiltEvents = towerBuiltEvents;
         this.waveStartedEvents = waveStartedEvents;
         this.waveCompletedEvents = waveCompletedEvents;
+        this.enemyPath = List.copyOf(Objects.requireNonNull(enemyPath, "enemyPath"));
     }
 
     public RuntimeLevelState getLevelState() {
@@ -107,5 +111,9 @@ public final class GameRuntimeView {
 
     public int getWaveCompletedEvents() {
         return waveCompletedEvents;
+    }
+
+    public List<Vector2> getEnemyPath() {
+        return enemyPath;
     }
 }
