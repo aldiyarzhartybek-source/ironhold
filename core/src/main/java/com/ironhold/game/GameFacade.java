@@ -173,7 +173,8 @@ public final class GameFacade {
             eventTracker.getEnemyKilledEvents(),
             eventTracker.getTowerBuiltEvents(),
             eventTracker.getWaveStartedEvents(),
-            eventTracker.getWaveCompletedEvents()
+            eventTracker.getWaveCompletedEvents(),
+            enemyPath
         );
     }
 
