@@ -8,6 +8,8 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
@@ -27,6 +29,9 @@ import com.ironhold.ui.UiLayer;
 import java.util.Objects;
 
 public final class GameScreen extends ScreenAdapter {
+    private static final float ROAD_WIDTH = 42f;
+    private static final float ROAD_MARKER_STEP = 24f;
+
     private final GameFacade game;
     private final OrthographicCamera camera;
     private final SpriteBatch batch;
@@ -81,17 +86,25 @@ public final class GameScreen extends ScreenAdapter {
         mapRenderer.render();
 
         batch.begin();
-        batch.draw(testTexture, 24f, 24f, 64f, 64f);
+        drawVisualBackdrop();
+        drawPathOverlay(view);
+        drawBaseAndSpawnMarkers(view);
         for (BuildSlot slot : view.getBuildSlots()) {
-            float slotSize = slot.isOccupied() ? 24f : 16f;
+            float slotSize = slot.isOccupied() ? 28f : 20f;
+            batch.setColor(slot.isOccupied() ? 0.32f : 0.24f, slot.isOccupied() ? 0.7f : 0.5f, 0.3f, 0.95f);
             batch.draw(testTexture, slot.getX() - slotSize / 2f, slot.getY() - slotSize / 2f, slotSize, slotSize);
+            batch.setColor(0.06f, 0.09f, 0.12f, 0.95f);
+            batch.draw(testTexture, slot.getX() - 7f, slot.getY() - 7f, 14f, 14f);
         }
         for (PlacedTower tower : view.getPlacedTowers()) {
+            batch.setColor(0.42f, 0.53f, 0.95f, 1f);
             batch.draw(testTexture, tower.getX() - 12f, tower.getY() - 12f, 24f, 24f);
         }
         for (ActiveEnemy enemy : view.getActiveEnemies()) {
+            batch.setColor(0.88f, 0.3f, 0.3f, 1f);
             batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
         }
+        batch.setColor(Color.WHITE);
         hud.render(batch, view);
         batch.end();
 
@@ -193,5 +206,72 @@ public final class GameScreen extends ScreenAdapter {
         endOverlayStatus = null;
         endStateUi.getStage().clear();
         Gdx.input.setInputProcessor(null);
+    }
+
+    private void drawVisualBackdrop() {
+        float width = camera.viewportWidth;
+        float height = camera.viewportHeight;
+
+        batch.setColor(0.07f, 0.11f, 0.12f, 1f);
+        batch.draw(testTexture, 0f, 0f, width, height);
+        batch.setColor(0.11f, 0.14f, 0.1f, 1f);
+        batch.draw(testTexture, 0f, 0f, width, height * 0.22f);
+        batch.setColor(0.09f, 0.13f, 0.09f, 0.35f);
+        batch.draw(testTexture, 16f, 16f, width - 32f, height - 32f);
+    }
+
+    private void drawPathOverlay(GameRuntimeView view) {
+        var path = view.getEnemyPath();
+        if (path.size() < 2) {
+            return;
+        }
+        for (int i = 0; i < path.size() - 1; i++) {
+            Vector2 from = path.get(i);
+            Vector2 to = path.get(i + 1);
+            drawPathSegment(from, to);
+        }
+    }
+
+    private void drawPathSegment(Vector2 from, Vector2 to) {
+        float dx = to.x - from.x;
+        float dy = to.y - from.y;
+        float length = (float) Math.sqrt(dx * dx + dy * dy);
+        if (length < 0.01f) {
+            return;
+        }
+
+        // thick route body
+        batch.setColor(0.35f, 0.29f, 0.18f, 0.96f);
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            float y = Math.min(from.y, to.y) - ROAD_WIDTH / 2f;
+            batch.draw(testTexture, Math.min(from.x, to.x), y, Math.abs(dx), ROAD_WIDTH);
+        } else {
+            float x = Math.min(from.x, to.x) - ROAD_WIDTH / 2f;
+            batch.draw(testTexture, x, Math.min(from.y, to.y), ROAD_WIDTH, Math.abs(dy));
+        }
+
+        // lane highlights
+        batch.setColor(0.56f, 0.47f, 0.28f, 0.4f);
+        int markerCount = Math.max(1, (int) (length / ROAD_MARKER_STEP));
+        for (int m = 0; m <= markerCount; m++) {
+            float t = (float) m / markerCount;
+            float x = from.x + dx * t;
+            float y = from.y + dy * t;
+            batch.draw(testTexture, x - 3f, y - 3f, 6f, 6f);
+        }
+    }
+
+    private void drawBaseAndSpawnMarkers(GameRuntimeView view) {
+        var path = view.getEnemyPath();
+        if (path.isEmpty()) {
+            return;
+        }
+        Vector2 spawn = path.get(0);
+        Vector2 base = path.get(path.size() - 1);
+
+        batch.setColor(0.96f, 0.82f, 0.34f, 0.95f);
+        batch.draw(testTexture, spawn.x - 12f, spawn.y - 12f, 24f, 24f);
+        batch.setColor(0.72f, 0.18f, 0.18f, 0.95f);
+        batch.draw(testTexture, base.x - 14f, base.y - 14f, 28f, 28f);
     }
 }
