@@ -20,7 +20,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.ironhold.game.GameFacade;
 import com.ironhold.game.GameRuntimeView;
 import com.ironhold.game.model.ActiveEnemy;
+import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.BuildSlot;
+import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.level.LevelStatus;
@@ -258,13 +260,15 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     private void drawFxLayer(GameRuntimeView view) {
-        if (view.getActiveEnemies().isEmpty()) {
-            return;
+        for (ActiveProjectile projectile : view.getActiveProjectiles()) {
+            batch.setColor(1f, 0.95f, 0.55f, 1f);
+            batch.draw(testTexture, projectile.getX() - 3f, projectile.getY() - 3f, 6f, 6f);
         }
-        // Minimal reserved layer marker to keep FX insertion point explicit.
-        ActiveEnemy first = view.getActiveEnemies().get(0);
-        batch.setColor(0.95f, 0.95f, 0.95f, 0.12f);
-        batch.draw(testTexture, first.getX() - 2f, first.getY() - 2f, 24f, 24f);
+        for (HitEffect hitEffect : view.getHitEffects()) {
+            float alpha = Math.min(1f, Math.max(0f, hitEffect.getTtlSec() / 0.14f));
+            batch.setColor(1f, 0.7f, 0.2f, alpha);
+            batch.draw(testTexture, hitEffect.getX() - 10f, hitEffect.getY() - 10f, 20f, 20f);
+        }
     }
 
     private void drawVisualBackdrop() {
