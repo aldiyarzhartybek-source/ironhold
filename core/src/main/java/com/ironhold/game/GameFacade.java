@@ -9,9 +9,11 @@ import com.ironhold.events.TowerBuiltEvent;
 import com.ironhold.events.WaveCompletedEvent;
 import com.ironhold.events.WaveStartedEvent;
 import com.ironhold.game.model.ActiveEnemy;
+import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.EconomyState;
 import com.ironhold.game.model.Enemy;
+import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
 import com.ironhold.game.model.WaveDefinition;
@@ -34,6 +36,9 @@ public final class GameFacade {
     private static final float MIN_RUNTIME_TOWER_RANGE = 16f;
     private static final int MIN_RUNTIME_TOWER_DAMAGE = 1;
     private static final float MIN_RUNTIME_TOWER_FIRE_RATE_SEC = 0.1f;
+    private static final float PROJECTILE_SPEED = 320f;
+    private static final float PROJECTILE_HIT_RADIUS = 12f;
+    private static final float HIT_EFFECT_TTL_SEC = 0.14f;
 
     private final GameContext context;
     private final AssetService assets;
@@ -48,8 +53,11 @@ public final class GameFacade {
     private final Map<String, Tower> towersById;
     private final List<ActiveEnemy> activeEnemies;
     private final List<PlacedTower> placedTowers;
+    private final List<ActiveProjectile> activeProjectiles;
+    private final List<HitEffect> hitEffects;
     private final List<Vector2> enemyPath;
     private int nextEnemyInstanceId;
+    private int nextProjectileInstanceId;
     private BuildPlacementResult lastBuildPlacementResult;
     private int lastAwardedGold;
     private int totalKilledEnemies;
@@ -87,8 +95,11 @@ public final class GameFacade {
         this.towersById = indexTowersById(this.towers);
         this.activeEnemies = new ArrayList<>();
         this.placedTowers = new ArrayList<>();
+        this.activeProjectiles = new ArrayList<>();
+        this.hitEffects = new ArrayList<>();
         this.enemyPath = defaultEnemyPath();
         this.nextEnemyInstanceId = 1;
+        this.nextProjectileInstanceId = 1;
         this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
         this.lastAwardedGold = 0;
         this.totalKilledEnemies = 0;
@@ -165,6 +176,8 @@ public final class GameFacade {
             buildSlots,
             placedTowers,
             activeEnemies,
+            activeProjectiles,
+            hitEffects,
             economy.getGold(),
             lastBuildPlacementResult,
             totalKilledEnemies,
@@ -245,8 +258,11 @@ public final class GameFacade {
     public void startLevel() {
         activeEnemies.clear();
         placedTowers.clear();
+        activeProjectiles.clear();
+        hitEffects.clear();
         resetBuildSlots();
         nextEnemyInstanceId = 1;
+        nextProjectileInstanceId = 1;
         lastAwardedGold = 0;
         totalKilledEnemies = 0;
         runtimeLevelState.start();
@@ -261,7 +277,9 @@ public final class GameFacade {
             spawnEnemy(enemyId);
         }
         updateEnemyMovement(safeDeltaSec);
+        updateProjectiles(safeDeltaSec);
         updateTowerCombat(safeDeltaSec);
+        updateHitEffects(safeDeltaSec);
         if (runtimeLevelState.areAllWavesSpawned()
             && activeEnemies.isEmpty()) {
             runtimeLevelState.markCompletedIfRunning();
@@ -348,7 +366,6 @@ public final class GameFacade {
         if (deltaSec <= 0f || placedTowers.isEmpty() || activeEnemies.isEmpty()) {
             return;
         }
-        List<ActiveEnemy> killed = new ArrayList<>();
         for (PlacedTower tower : placedTowers) {
             float cooldown = Math.max(0f, tower.getCooldownSec() - deltaSec);
             tower.setCooldownSec(cooldown);
@@ -359,17 +376,81 @@ public final class GameFacade {
             if (target == null) {
                 continue;
             }
-            target.setCurrentHp(target.getCurrentHp() - tower.getDamage());
             tower.setCooldownSec(tower.getFireRateSec());
-            if (target.getCurrentHp() <= 0 && !killed.contains(target)) {
-                killed.add(target);
-            }
+            spawnProjectile(tower, target);
         }
-        if (!killed.isEmpty()) {
-            for (ActiveEnemy enemy : killed) {
+    }
+
+    private void spawnProjectile(PlacedTower tower, ActiveEnemy target) {
+        activeProjectiles.add(new ActiveProjectile(
+            "projectile-" + nextProjectileInstanceId++,
+            target.getRuntimeId(),
+            tower.getDamage(),
+            tower.getX(),
+            tower.getY(),
+            PROJECTILE_SPEED
+        ));
+    }
+
+    private void updateProjectiles(float deltaSec) {
+        if (deltaSec <= 0f || activeProjectiles.isEmpty()) {
+            return;
+        }
+        List<ActiveProjectile> finishedProjectiles = new ArrayList<>();
+        List<ActiveEnemy> killedEnemies = new ArrayList<>();
+
+        for (ActiveProjectile projectile : activeProjectiles) {
+            ActiveEnemy target = findActiveEnemyByRuntimeId(projectile.getTargetEnemyRuntimeId());
+            if (target == null) {
+                finishedProjectiles.add(projectile);
+                continue;
+            }
+
+            float dx = target.getX() - projectile.getX();
+            float dy = target.getY() - projectile.getY();
+            float distance = (float) Math.sqrt(dx * dx + dy * dy);
+            float step = projectile.getSpeed() * deltaSec;
+            if (distance <= PROJECTILE_HIT_RADIUS || step >= distance) {
+                target.setCurrentHp(target.getCurrentHp() - projectile.getDamage());
+                hitEffects.add(new HitEffect(target.getX() + 10f, target.getY() + 10f, HIT_EFFECT_TTL_SEC));
+                finishedProjectiles.add(projectile);
+                if (target.getCurrentHp() <= 0 && !killedEnemies.contains(target)) {
+                    killedEnemies.add(target);
+                }
+                continue;
+            }
+
+            float ratio = step / distance;
+            projectile.setPosition(
+                projectile.getX() + dx * ratio,
+                projectile.getY() + dy * ratio
+            );
+        }
+
+        if (!finishedProjectiles.isEmpty()) {
+            activeProjectiles.removeAll(finishedProjectiles);
+        }
+        if (!killedEnemies.isEmpty()) {
+            for (ActiveEnemy enemy : killedEnemies) {
                 awardKill(enemy);
             }
-            activeEnemies.removeAll(killed);
+            activeEnemies.removeAll(killedEnemies);
+        }
+    }
+
+    private void updateHitEffects(float deltaSec) {
+        if (deltaSec <= 0f || hitEffects.isEmpty()) {
+            return;
+        }
+        List<HitEffect> expired = new ArrayList<>();
+        for (HitEffect hitEffect : hitEffects) {
+            hitEffect.setTtlSec(hitEffect.getTtlSec() - deltaSec);
+            if (hitEffect.getTtlSec() <= 0f) {
+                expired.add(hitEffect);
+            }
+        }
+        if (!expired.isEmpty()) {
+            hitEffects.removeAll(expired);
         }
     }
 
@@ -398,6 +479,15 @@ public final class GameFacade {
         lastAwardedGold = reward;
         totalKilledEnemies++;
         getEventBus().publish(new EnemyKilledEvent(enemy.getRuntimeId(), enemy.getEnemyId(), reward));
+    }
+
+    private ActiveEnemy findActiveEnemyByRuntimeId(String runtimeId) {
+        for (ActiveEnemy activeEnemy : activeEnemies) {
+            if (activeEnemy.getRuntimeId().equals(runtimeId)) {
+                return activeEnemy;
+            }
+        }
+        return null;
     }
 
     private void publishPendingWaveEvents() {
