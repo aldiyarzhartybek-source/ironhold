@@ -32,6 +32,15 @@ public final class GameScreen extends ScreenAdapter {
     private static final float ROAD_WIDTH = 42f;
     private static final float ROAD_MARKER_STEP = 24f;
 
+    private enum RenderLayer {
+        GROUND,
+        PROPS,
+        ENEMIES,
+        TOWERS,
+        FX,
+        UI
+    }
+
     private final GameFacade game;
     private final OrthographicCamera camera;
     private final SpriteBatch batch;
@@ -86,26 +95,7 @@ public final class GameScreen extends ScreenAdapter {
         mapRenderer.render();
 
         batch.begin();
-        drawVisualBackdrop();
-        drawPathOverlay(view);
-        drawBaseAndSpawnMarkers(view);
-        for (BuildSlot slot : view.getBuildSlots()) {
-            float slotSize = slot.isOccupied() ? 28f : 20f;
-            batch.setColor(slot.isOccupied() ? 0.32f : 0.24f, slot.isOccupied() ? 0.7f : 0.5f, 0.3f, 0.95f);
-            batch.draw(testTexture, slot.getX() - slotSize / 2f, slot.getY() - slotSize / 2f, slotSize, slotSize);
-            batch.setColor(0.06f, 0.09f, 0.12f, 0.95f);
-            batch.draw(testTexture, slot.getX() - 7f, slot.getY() - 7f, 14f, 14f);
-        }
-        for (PlacedTower tower : view.getPlacedTowers()) {
-            batch.setColor(0.42f, 0.53f, 0.95f, 1f);
-            batch.draw(testTexture, tower.getX() - 12f, tower.getY() - 12f, 24f, 24f);
-        }
-        for (ActiveEnemy enemy : view.getActiveEnemies()) {
-            batch.setColor(0.88f, 0.3f, 0.3f, 1f);
-            batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
-        }
-        batch.setColor(Color.WHITE);
-        hud.render(batch, view);
+        renderWorldLayers(view);
         batch.end();
 
         if (endOverlayVisible) {
@@ -206,6 +196,75 @@ public final class GameScreen extends ScreenAdapter {
         endOverlayStatus = null;
         endStateUi.getStage().clear();
         Gdx.input.setInputProcessor(null);
+    }
+
+    private void renderWorldLayers(GameRuntimeView view) {
+        // Fixed layer list keeps depth order deterministic.
+        for (RenderLayer layer : RenderLayer.values()) {
+            renderLayer(layer, view);
+        }
+        batch.setColor(Color.WHITE);
+    }
+
+    private void renderLayer(RenderLayer layer, GameRuntimeView view) {
+        switch (layer) {
+            case GROUND:
+                drawVisualBackdrop();
+                break;
+            case PROPS:
+                drawPathOverlay(view);
+                drawBaseAndSpawnMarkers(view);
+                drawBuildSlots(view);
+                break;
+            case ENEMIES:
+                drawEnemies(view);
+                break;
+            case TOWERS:
+                drawTowers(view);
+                break;
+            case FX:
+                drawFxLayer(view);
+                break;
+            case UI:
+                hud.render(batch, view);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void drawBuildSlots(GameRuntimeView view) {
+        for (BuildSlot slot : view.getBuildSlots()) {
+            float slotSize = slot.isOccupied() ? 28f : 20f;
+            batch.setColor(slot.isOccupied() ? 0.32f : 0.24f, slot.isOccupied() ? 0.7f : 0.5f, 0.3f, 0.95f);
+            batch.draw(testTexture, slot.getX() - slotSize / 2f, slot.getY() - slotSize / 2f, slotSize, slotSize);
+            batch.setColor(0.06f, 0.09f, 0.12f, 0.95f);
+            batch.draw(testTexture, slot.getX() - 7f, slot.getY() - 7f, 14f, 14f);
+        }
+    }
+
+    private void drawEnemies(GameRuntimeView view) {
+        for (ActiveEnemy enemy : view.getActiveEnemies()) {
+            batch.setColor(0.88f, 0.3f, 0.3f, 1f);
+            batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
+        }
+    }
+
+    private void drawTowers(GameRuntimeView view) {
+        for (PlacedTower tower : view.getPlacedTowers()) {
+            batch.setColor(0.42f, 0.53f, 0.95f, 1f);
+            batch.draw(testTexture, tower.getX() - 12f, tower.getY() - 12f, 24f, 24f);
+        }
+    }
+
+    private void drawFxLayer(GameRuntimeView view) {
+        if (view.getActiveEnemies().isEmpty()) {
+            return;
+        }
+        // Minimal reserved layer marker to keep FX insertion point explicit.
+        ActiveEnemy first = view.getActiveEnemies().get(0);
+        batch.setColor(0.95f, 0.95f, 0.95f, 0.12f);
+        batch.draw(testTexture, first.getX() - 2f, first.getY() - 2f, 24f, 24f);
     }
 
     private void drawVisualBackdrop() {
