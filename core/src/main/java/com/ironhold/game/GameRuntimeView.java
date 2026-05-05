@@ -6,6 +6,7 @@ import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.PlacedTower;
+import com.ironhold.game.model.Tower;
 import com.ironhold.level.RuntimeLevelState;
 
 import java.util.List;
@@ -32,6 +33,8 @@ public final class GameRuntimeView {
     private final int waveStartedEvents;
     private final int waveCompletedEvents;
     private final List<Vector2> enemyPath;
+    private final List<Tower> availableTowers;
+    private final String selectedTowerId;
 
     public GameRuntimeView(
         RuntimeLevelState levelState,
@@ -49,7 +52,9 @@ public final class GameRuntimeView {
         int towerBuiltEvents,
         int waveStartedEvents,
         int waveCompletedEvents,
-        List<Vector2> enemyPath
+        List<Vector2> enemyPath,
+        List<Tower> availableTowers,
+        String selectedTowerId
     ) {
         this.levelState = Objects.requireNonNull(levelState, "levelState");
         this.buildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
@@ -67,6 +72,8 @@ public final class GameRuntimeView {
         this.waveStartedEvents = waveStartedEvents;
         this.waveCompletedEvents = waveCompletedEvents;
         this.enemyPath = List.copyOf(Objects.requireNonNull(enemyPath, "enemyPath"));
+        this.availableTowers = List.copyOf(Objects.requireNonNull(availableTowers, "availableTowers"));
+        this.selectedTowerId = selectedTowerId;
     }
 
     public RuntimeLevelState getLevelState() {
@@ -131,5 +138,13 @@ public final class GameRuntimeView {
 
     public List<Vector2> getEnemyPath() {
         return enemyPath;
+    }
+
+    public List<Tower> getAvailableTowers() {
+        return availableTowers;
+    }
+
+    public String getSelectedTowerId() {
+        return selectedTowerId;
     }
 }
