@@ -56,6 +56,7 @@ public final class GameFacade {
     private final List<ActiveProjectile> activeProjectiles;
     private final List<HitEffect> hitEffects;
     private final List<Vector2> enemyPath;
+    private String selectedTowerId;
     private int nextEnemyInstanceId;
     private int nextProjectileInstanceId;
     private BuildPlacementResult lastBuildPlacementResult;
@@ -93,6 +94,7 @@ public final class GameFacade {
         this.runtimeLevelState = new RuntimeLevelState(this.waves);
         this.enemiesById = indexEnemiesById(this.enemies);
         this.towersById = indexTowersById(this.towers);
+        this.selectedTowerId = towers.isEmpty() ? null : towers.get(0).getId();
         this.activeEnemies = new ArrayList<>();
         this.placedTowers = new ArrayList<>();
         this.activeProjectiles = new ArrayList<>();
@@ -187,7 +189,9 @@ public final class GameFacade {
             eventTracker.getTowerBuiltEvents(),
             eventTracker.getWaveStartedEvents(),
             eventTracker.getWaveCompletedEvents(),
-            enemyPath
+            enemyPath,
+            towers,
+            selectedTowerId
         );
     }
 
@@ -208,7 +212,28 @@ public final class GameFacade {
             lastBuildPlacementResult = BuildPlacementResult.NO_TOWERS_AVAILABLE;
             return false;
         }
-        return tryPlaceTower(worldX, worldY, towers.get(0).getId()) == BuildPlacementResult.OK;
+        if (selectedTowerId == null) {
+            lastBuildPlacementResult = BuildPlacementResult.NO_TOWERS_AVAILABLE;
+            return false;
+        }
+        return tryPlaceTower(worldX, worldY, selectedTowerId) == BuildPlacementResult.OK;
+    }
+
+    public void selectTower(String towerId) {
+        if (towerId == null) {
+            return;
+        }
+        if (!towersById.containsKey(towerId)) {
+            return;
+        }
+        selectedTowerId = towerId;
+    }
+
+    public void selectTowerByIndex(int index) {
+        if (index < 0 || index >= towers.size()) {
+            return;
+        }
+        selectedTowerId = towers.get(index).getId();
     }
 
     public BuildPlacementResult tryPlaceTower(float worldX, float worldY, String towerId) {
