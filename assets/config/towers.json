@@ -5,14 +5,16 @@
       "cost": 75,
       "range": 2.8,
       "damage": 15,
-      "fireRateSec": 1.0
+      "fireRateSec": 1.0,
+      "targeting": "nearest"
     },
     {
       "id": "sniper_tower",
       "cost": 120,
       "range": 5.2,
       "damage": 35,
-      "fireRateSec": 1.8
+      "fireRateSec": 1.8,
+      "targeting": "first"
     }
   ]
 }

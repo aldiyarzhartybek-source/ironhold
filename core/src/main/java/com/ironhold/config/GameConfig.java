@@ -14,6 +14,7 @@ import com.ironhold.config.dto.WavesConfigDto;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -179,7 +180,30 @@ public final class GameConfig {
             tower.range = clampFloat(tower.range, MIN_TOWER_RANGE, MAX_TOWER_RANGE, fallback.range, "tower.range(" + id + ")");
             tower.damage = clampInt(tower.damage, MIN_TOWER_DAMAGE, MAX_TOWER_DAMAGE, fallback.damage, "tower.damage(" + id + ")");
             tower.fireRateSec = clampFloat(tower.fireRateSec, MIN_TOWER_FIRE_RATE_SEC, MAX_TOWER_FIRE_RATE_SEC, fallback.fireRateSec, "tower.fireRateSec(" + id + ")");
+            tower.targeting = sanitizeTowerTargeting(tower.targeting, fallback.targeting, id);
         }
+    }
+
+    private static String sanitizeTowerTargeting(String raw, String fallbackRaw, String towerId) {
+        String canon = canonicalTargeting(raw);
+        if (canon != null) {
+            return canon;
+        }
+        String fb = canonicalTargeting(fallbackRaw);
+        String use = fb != null ? fb : "nearest";
+        warn("tower.targeting(" + towerId + ") invalid '" + raw + "', fallback to '" + use + "'");
+        return use;
+    }
+
+    private static String canonicalTargeting(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String normalized = raw.trim().toLowerCase(Locale.ROOT);
+        if ("nearest".equals(normalized) || "first".equals(normalized) || "strongest".equals(normalized)) {
+            return normalized;
+        }
+        return null;
     }
 
     private static void sanitizeWaves(WavesConfigDto waves, EnemiesConfigDto enemies) {
@@ -284,6 +308,7 @@ public final class GameConfig {
         basic.range = 2.8f;
         basic.damage = 15;
         basic.fireRateSec = 1.0f;
+        basic.targeting = "nearest";
         dto.towers.add(basic);
         return dto;
     }

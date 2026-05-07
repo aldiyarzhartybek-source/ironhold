@@ -10,13 +10,22 @@ public final class Tower {
     private final float range;
     private final int damage;
     private final float fireRateSec;
+    private final TowerTargetingPriority targetingPriority;
 
-    public Tower(String id, int cost, float range, int damage, float fireRateSec) {
+    public Tower(
+        String id,
+        int cost,
+        float range,
+        int damage,
+        float fireRateSec,
+        TowerTargetingPriority targetingPriority
+    ) {
         this.id = id;
         this.cost = cost;
         this.range = range;
         this.damage = damage;
         this.fireRateSec = fireRateSec;
+        this.targetingPriority = targetingPriority != null ? targetingPriority : TowerTargetingPriority.NEAREST;
     }
 
     public String getId() {
@@ -37,5 +46,9 @@ public final class Tower {
 
     public float getFireRateSec() {
         return fireRateSec;
+    }
+
+    public TowerTargetingPriority getTargetingPriority() {
+        return targetingPriority;
     }
 }
