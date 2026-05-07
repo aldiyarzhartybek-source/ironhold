@@ -45,6 +45,20 @@ public final class StageHud {
         font.draw(batch, "Gold: " + view.getGold(), screenWidth - RIGHT_MARGIN, topY);
         font.draw(batch, "Status: " + level.getStatus(), LEFT_X, topY - LINE_HEIGHT);
         font.draw(batch, "Build: " + view.getLastBuildPlacementResult(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT);
+        drawSelectedTowerTargeting(batch, view, topY - LINE_HEIGHT * 2f);
+    }
+
+    private void drawSelectedTowerTargeting(SpriteBatch batch, GameRuntimeView view, float y) {
+        String selectedId = view.getSelectedTowerId();
+        if (selectedId == null) {
+            return;
+        }
+        for (var t : view.getAvailableTowers()) {
+            if (selectedId.equals(t.getId())) {
+                font.draw(batch, "Tower targeting: " + t.getTargetingPriority().name(), LEFT_X, y);
+                return;
+            }
+        }
     }
 
     private void drawDebugHud(SpriteBatch batch, GameRuntimeView view) {

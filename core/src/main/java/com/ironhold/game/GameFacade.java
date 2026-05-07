@@ -16,6 +16,7 @@ import com.ironhold.game.model.Enemy;
 import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
+import com.ironhold.game.model.TowerTargeting;
 import com.ironhold.game.model.WaveDefinition;
 import com.ironhold.game.screen.ScreenNavigator;
 import com.ironhold.level.RuntimeLevelState;
@@ -264,7 +265,8 @@ public final class GameFacade {
             slot.getY(),
             Math.max(MIN_RUNTIME_TOWER_RANGE, tower.getRange()),
             Math.max(MIN_RUNTIME_TOWER_DAMAGE, tower.getDamage()),
-            Math.max(MIN_RUNTIME_TOWER_FIRE_RATE_SEC, tower.getFireRateSec())
+            Math.max(MIN_RUNTIME_TOWER_FIRE_RATE_SEC, tower.getFireRateSec()),
+            tower.getTargetingPriority()
         ));
         lastBuildPlacementResult = BuildPlacementResult.OK;
         getEventBus().publish(new TowerBuiltEvent(tower.getId(), slot.getSlotId(), tower.getCost()));
@@ -397,7 +399,7 @@ public final class GameFacade {
             if (cooldown > 0f) {
                 continue;
             }
-            ActiveEnemy target = findNearestTargetInRange(tower);
+            ActiveEnemy target = pickTargetForTower(tower);
             if (target == null) {
                 continue;
             }
@@ -479,19 +481,78 @@ public final class GameFacade {
         }
     }
 
-    private ActiveEnemy findNearestTargetInRange(PlacedTower tower) {
-        ActiveEnemy best = null;
-        float bestDistanceSq = Float.MAX_VALUE;
+    /**
+     * Sticky targeting: keep firing at the locked enemy while it stays in range to avoid erratic retargeting.
+     */
+    private ActiveEnemy pickTargetForTower(PlacedTower tower) {
         float rangeSq = tower.getRange() * tower.getRange();
+        String lockedId = tower.getLockedTargetRuntimeId();
+        if (lockedId != null) {
+            ActiveEnemy locked = findActiveEnemyByRuntimeId(lockedId);
+            if (locked != null && isEnemyInTowerRange(tower, locked, rangeSq)) {
+                return locked;
+            }
+            tower.setLockedTargetRuntimeId(null);
+        }
+
+        ActiveEnemy chosen;
+        switch (tower.getTargetingPriority()) {
+            case NEAREST:
+                chosen = pickNearestInRange(tower, rangeSq);
+                break;
+            case FIRST:
+                chosen = pickFirstAlongPathInRange(tower, rangeSq);
+                break;
+            case STRONGEST:
+                chosen = pickStrongestInRange(tower, rangeSq);
+                break;
+            default:
+                chosen = pickNearestInRange(tower, rangeSq);
+                break;
+        }
+        if (chosen != null) {
+            tower.setLockedTargetRuntimeId(chosen.getRuntimeId());
+        }
+        return chosen;
+    }
+
+    private static boolean isEnemyInTowerRange(PlacedTower tower, ActiveEnemy enemy, float rangeSq) {
+        return TowerTargeting.distanceSquaredToTower(tower.getX(), tower.getY(), enemy) <= rangeSq;
+    }
+
+    private ActiveEnemy pickNearestInRange(PlacedTower tower, float rangeSq) {
+        ActiveEnemy best = null;
         for (ActiveEnemy enemy : activeEnemies) {
-            float dx = enemy.getX() - tower.getX();
-            float dy = enemy.getY() - tower.getY();
-            float distanceSq = dx * dx + dy * dy;
-            if (distanceSq > rangeSq) {
+            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
                 continue;
             }
-            if (distanceSq < bestDistanceSq) {
-                bestDistanceSq = distanceSq;
+            if (best == null || TowerTargeting.compareNearest(tower.getX(), tower.getY(), enemy, best) < 0) {
+                best = enemy;
+            }
+        }
+        return best;
+    }
+
+    private ActiveEnemy pickFirstAlongPathInRange(PlacedTower tower, float rangeSq) {
+        ActiveEnemy best = null;
+        for (ActiveEnemy enemy : activeEnemies) {
+            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
+                continue;
+            }
+            if (best == null || TowerTargeting.compareFirstAlongPath(enemyPath, enemy, best) > 0) {
+                best = enemy;
+            }
+        }
+        return best;
+    }
+
+    private ActiveEnemy pickStrongestInRange(PlacedTower tower, float rangeSq) {
+        ActiveEnemy best = null;
+        for (ActiveEnemy enemy : activeEnemies) {
+            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
+                continue;
+            }
+            if (best == null || TowerTargeting.compareStrongest(enemy, best) > 0) {
                 best = enemy;
             }
         }
