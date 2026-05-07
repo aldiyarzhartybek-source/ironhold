@@ -9,4 +9,6 @@ public final class TowerConfigDto {
     public float range = 2.8f;
     public int damage = 15;
     public float fireRateSec = 1.0f;
+    /** nearest | first | strongest */
+    public String targeting = "nearest";
 }

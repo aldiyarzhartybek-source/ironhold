@@ -36,7 +36,8 @@ public final class GameModelMapper {
                 tower.cost,
                 tower.range * TILE_SIZE_PX,
                 tower.damage,
-                tower.fireRateSec
+                tower.fireRateSec,
+                TowerTargetingPriority.fromConfig(tower.targeting)
             ));
         }
         return result;
