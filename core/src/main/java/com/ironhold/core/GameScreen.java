@@ -57,6 +57,7 @@ public final class GameScreen extends ScreenAdapter {
     private final OrthogonalTiledMapRenderer mapRenderer;
     private final Vector3 touchWorld;
     private final StageHud hud;
+    private final GameplayUiFxReactor eventUiFx;
     private final UiLayer endStateUi;
     private boolean endOverlayVisible;
     private LevelStatus endOverlayStatus;
@@ -72,6 +73,7 @@ public final class GameScreen extends ScreenAdapter {
         this.mapRenderer = new OrthogonalTiledMapRenderer(map, 1f, batch);
         this.touchWorld = new Vector3();
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
         this.endStateUi = new UiLayer(assetService.getSkin());
         this.endOverlayVisible = false;
         this.endOverlayStatus = null;
@@ -91,6 +93,7 @@ public final class GameScreen extends ScreenAdapter {
             handleDebugEnemyKillInput();
         }
         game.updateLevel(delta);
+        eventUiFx.update(delta);
         GameRuntimeView view = game.getRuntimeView();
         syncEndStateOverlay(view);
 
@@ -137,6 +140,7 @@ public final class GameScreen extends ScreenAdapter {
     public void dispose() {
         mapRenderer.dispose();
         batch.dispose();
+        eventUiFx.dispose();
         endStateUi.dispose();
     }
 
@@ -202,6 +206,7 @@ public final class GameScreen extends ScreenAdapter {
         endOverlayVisible = false;
         endOverlayStatus = null;
         endStateUi.getStage().clear();
+        eventUiFx.clearTransientState();
         Gdx.input.setInputProcessor(null);
     }
 
@@ -234,6 +239,7 @@ public final class GameScreen extends ScreenAdapter {
                 break;
             case UI:
                 hud.render(batch, view);
+                drawEventOverlays();
                 break;
             default:
                 break;
@@ -301,6 +307,7 @@ public final class GameScreen extends ScreenAdapter {
             batch.setColor(1f, 0.7f, 0.2f, alpha);
             batch.draw(testTexture, hitEffect.getX() - 10f, hitEffect.getY() - 10f, 20f, 20f);
         }
+        drawFloatingRewardTexts();
     }
 
     private void drawVisualBackdrop() {
@@ -368,5 +375,40 @@ public final class GameScreen extends ScreenAdapter {
         batch.draw(testTexture, spawn.x - 12f, spawn.y - 12f, 24f, 24f);
         batch.setColor(0.72f, 0.18f, 0.18f, 0.95f);
         batch.draw(testTexture, base.x - 14f, base.y - 14f, 28f, 28f);
+    }
+
+    private void drawFloatingRewardTexts() {
+        for (GameplayUiFxReactor.FloatingTextView floating : eventUiFx.getFloatingTextViews()) {
+            batch.setColor(0.14f, 0.96f, 0.45f, floating.getAlpha());
+            font.draw(batch, floating.getText(), floating.getX(), floating.getY());
+        }
+    }
+
+    private void drawEventOverlays() {
+        GameplayUiFxReactor.BannerView banner = eventUiFx.getBannerView();
+        if (banner != null) {
+            float width = camera.viewportWidth;
+            float topY = camera.viewportHeight - 90f;
+            batch.setColor(0.08f, 0.12f, 0.18f, 0.65f * banner.getAlpha());
+            batch.draw(testTexture, width * 0.5f - 150f, topY - 26f, 300f, 34f);
+            batch.setColor(0.95f, 0.95f, 1f, banner.getAlpha());
+            font.draw(batch, banner.getText(), width * 0.5f - 78f, topY - 3f);
+        }
+
+        GameplayUiFxReactor.ToastView toast = eventUiFx.getToastView();
+        if (toast != null) {
+            float width = camera.viewportWidth;
+            float y = camera.viewportHeight - 18f;
+            if (toast.isError()) {
+                batch.setColor(0.26f, 0.08f, 0.08f, 0.72f * toast.getAlpha());
+                font.setColor(1f, 0.76f, 0.76f, toast.getAlpha());
+            } else {
+                batch.setColor(0.08f, 0.2f, 0.1f, 0.72f * toast.getAlpha());
+                font.setColor(0.82f, 1f, 0.82f, toast.getAlpha());
+            }
+            batch.draw(testTexture, width - 340f, y - 22f, 320f, 26f);
+            font.draw(batch, toast.getText(), width - 332f, y - 4f);
+            font.setColor(Color.WHITE);
+        }
     }
 }
