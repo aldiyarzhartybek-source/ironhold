@@ -2,22 +2,13 @@ package com.ironhold.game;
 
 import com.badlogic.gdx.math.Vector2;
 import com.ironhold.assets.AssetService;
-import com.ironhold.events.BuildPlacementFailedEvent;
-import com.ironhold.events.EnemyKilledEvent;
-import com.ironhold.events.EnemySpawnedEvent;
 import com.ironhold.events.EventBus;
-import com.ironhold.events.TowerBuiltEvent;
-import com.ironhold.events.WaveCompletedEvent;
-import com.ironhold.events.WaveStartedEvent;
 import com.ironhold.game.model.ActiveEnemy;
-import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.EconomyState;
 import com.ironhold.game.model.Enemy;
-import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
-import com.ironhold.game.model.TowerTargeting;
 import com.ironhold.game.model.WaveDefinition;
 import com.ironhold.game.screen.ScreenNavigator;
 import com.ironhold.level.RuntimeLevelState;
@@ -29,18 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Единая точка доступа к runtime-сервисам (фасад для экранов и будущих систем).
+ * Facade API for screens; gameplay details are delegated to orchestration subsystems.
  */
 public final class GameFacade {
-    private static final float ENEMY_SPEED_MULTIPLIER = 10.0f;
-    private static final float BUILD_SLOT_CLICK_RADIUS = 28f;
-    private static final float MIN_RUNTIME_ENEMY_SPEED = 0.1f;
-    private static final float MIN_RUNTIME_TOWER_RANGE = 16f;
-    private static final int MIN_RUNTIME_TOWER_DAMAGE = 1;
-    private static final float MIN_RUNTIME_TOWER_FIRE_RATE_SEC = 0.1f;
-    private static final float PROJECTILE_SPEED = 320f;
-    private static final float PROJECTILE_HIT_RADIUS = 12f;
-    private static final float HIT_EFFECT_TTL_SEC = 0.14f;
 
     private final GameContext context;
     private final AssetService assets;
@@ -48,23 +30,18 @@ public final class GameFacade {
     private final List<Enemy> enemies;
     private final List<Tower> towers;
     private final List<WaveDefinition> waves;
-    private final List<BuildSlot> buildSlots;
+    private final List<BuildSlot> initialBuildSlots;
     private final EconomyState economy;
-    private final RuntimeLevelState runtimeLevelState;
     private final Map<String, Enemy> enemiesById;
     private final Map<String, Tower> towersById;
-    private final List<ActiveEnemy> activeEnemies;
-    private final List<PlacedTower> placedTowers;
-    private final List<ActiveProjectile> activeProjectiles;
-    private final List<HitEffect> hitEffects;
-    private final List<Vector2> enemyPath;
-    private String selectedTowerId;
-    private int nextEnemyInstanceId;
-    private int nextProjectileInstanceId;
-    private BuildPlacementResult lastBuildPlacementResult;
-    private int lastAwardedGold;
-    private int totalKilledEnemies;
     private final GameplayEventTracker eventTracker;
+    private final GameRuntimeState runtimeState;
+    private final BuildSystem buildSystem;
+    private final SpawnSystem spawnSystem;
+    private final CombatRuntimeSystem combatSystem;
+    private final WaveEventSystem waveEventSystem;
+    private final GameRuntimeViewAssembler viewAssembler;
+    private BuildPlacementResult lastBuildPlacementResult;
 
     public enum BuildPlacementResult {
         OK,
@@ -91,23 +68,23 @@ public final class GameFacade {
         this.enemies = List.copyOf(Objects.requireNonNull(enemies, "enemies"));
         this.towers = List.copyOf(Objects.requireNonNull(towers, "towers"));
         this.waves = List.copyOf(Objects.requireNonNull(waves, "waves"));
-        this.buildSlots = new ArrayList<>(Objects.requireNonNull(buildSlots, "buildSlots"));
+        this.initialBuildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
         this.economy = Objects.requireNonNull(economy, "economy");
-        this.runtimeLevelState = new RuntimeLevelState(this.waves);
         this.enemiesById = indexEnemiesById(this.enemies);
         this.towersById = indexTowersById(this.towers);
-        this.selectedTowerId = towers.isEmpty() ? null : towers.get(0).getId();
-        this.activeEnemies = new ArrayList<>();
-        this.placedTowers = new ArrayList<>();
-        this.activeProjectiles = new ArrayList<>();
-        this.hitEffects = new ArrayList<>();
-        this.enemyPath = defaultEnemyPath();
-        this.nextEnemyInstanceId = 1;
-        this.nextProjectileInstanceId = 1;
-        this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
-        this.lastAwardedGold = 0;
-        this.totalKilledEnemies = 0;
         this.eventTracker = new GameplayEventTracker(getEventBus());
+        this.runtimeState = new GameRuntimeState(
+            new RuntimeLevelState(this.waves),
+            this.initialBuildSlots,
+            defaultEnemyPath(),
+            this.towers.isEmpty() ? null : this.towers.get(0).getId()
+        );
+        this.buildSystem = new BuildSystem(getEventBus(), this.economy, this.towersById);
+        this.spawnSystem = new SpawnSystem(getEventBus(), this.enemiesById);
+        this.combatSystem = new CombatRuntimeSystem(getEventBus(), this.economy);
+        this.waveEventSystem = new WaveEventSystem(getEventBus());
+        this.viewAssembler = new GameRuntimeViewAssembler(this.eventTracker, this.towers);
+        this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
     }
 
     public GameContext getContext() {
@@ -139,7 +116,7 @@ public final class GameFacade {
     }
 
     public List<BuildSlot> getBuildSlots() {
-        return List.copyOf(buildSlots);
+        return List.copyOf(runtimeState.getBuildSlots());
     }
 
     public EconomyState getEconomy() {
@@ -147,15 +124,15 @@ public final class GameFacade {
     }
 
     public List<ActiveEnemy> getActiveEnemies() {
-        return List.copyOf(activeEnemies);
+        return List.copyOf(runtimeState.getActiveEnemies());
     }
 
     public List<PlacedTower> getPlacedTowers() {
-        return List.copyOf(placedTowers);
+        return List.copyOf(runtimeState.getPlacedTowers());
     }
 
     public RuntimeLevelState getRuntimeLevelState() {
-        return runtimeLevelState;
+        return runtimeState.getRuntimeLevelState();
     }
 
     public BuildPlacementResult getLastBuildPlacementResult() {
@@ -163,11 +140,11 @@ public final class GameFacade {
     }
 
     public int getLastAwardedGold() {
-        return lastAwardedGold;
+        return runtimeState.getLastAwardedGold();
     }
 
     public int getTotalKilledEnemies() {
-        return totalKilledEnemies;
+        return runtimeState.getTotalKilledEnemies();
     }
 
     public GameplayEventTracker getEventTracker() {
@@ -175,26 +152,7 @@ public final class GameFacade {
     }
 
     public GameRuntimeView getRuntimeView() {
-        return new GameRuntimeView(
-            runtimeLevelState,
-            buildSlots,
-            placedTowers,
-            activeEnemies,
-            activeProjectiles,
-            hitEffects,
-            economy.getGold(),
-            lastBuildPlacementResult,
-            totalKilledEnemies,
-            lastAwardedGold,
-            eventTracker.getEnemySpawnedEvents(),
-            eventTracker.getEnemyKilledEvents(),
-            eventTracker.getTowerBuiltEvents(),
-            eventTracker.getWaveStartedEvents(),
-            eventTracker.getWaveCompletedEvents(),
-            enemyPath,
-            towers,
-            selectedTowerId
-        );
+        return viewAssembler.assemble(runtimeState, economy.getGold(), lastBuildPlacementResult);
     }
 
     public void dispose() {
@@ -206,409 +164,61 @@ public final class GameFacade {
     }
 
     public void handleDebugKillAction() {
-        debugDefeatFirstEnemy();
+        combatSystem.debugDefeatFirstEnemy(runtimeState);
     }
 
     public boolean tryPlaceTowerAt(float worldX, float worldY) {
-        if (towers.isEmpty()) {
-            lastBuildPlacementResult = BuildPlacementResult.NO_TOWERS_AVAILABLE;
-            publishBuildPlacementFailed(lastBuildPlacementResult, null, worldX, worldY);
+        if (towers.isEmpty() || runtimeState.getSelectedTowerId() == null) {
+            lastBuildPlacementResult = buildSystem.failNoTowers(worldX, worldY);
             return false;
         }
-        if (selectedTowerId == null) {
-            lastBuildPlacementResult = BuildPlacementResult.NO_TOWERS_AVAILABLE;
-            publishBuildPlacementFailed(lastBuildPlacementResult, null, worldX, worldY);
-            return false;
-        }
-        return tryPlaceTower(worldX, worldY, selectedTowerId) == BuildPlacementResult.OK;
+        lastBuildPlacementResult = buildSystem.tryPlaceTower(
+            runtimeState,
+            runtimeState.getSelectedTowerId(),
+            worldX,
+            worldY
+        );
+        return lastBuildPlacementResult == BuildPlacementResult.OK;
     }
 
     public void selectTower(String towerId) {
-        if (towerId == null) {
+        if (towerId == null || !towersById.containsKey(towerId)) {
             return;
         }
-        if (!towersById.containsKey(towerId)) {
-            return;
-        }
-        selectedTowerId = towerId;
+        runtimeState.setSelectedTowerId(towerId);
     }
 
     public void selectTowerByIndex(int index) {
         if (index < 0 || index >= towers.size()) {
             return;
         }
-        selectedTowerId = towers.get(index).getId();
+        runtimeState.setSelectedTowerId(towers.get(index).getId());
     }
 
     public BuildPlacementResult tryPlaceTower(float worldX, float worldY, String towerId) {
-        Tower tower = towersById.get(towerId);
-        if (tower == null) {
-            lastBuildPlacementResult = BuildPlacementResult.TOWER_NOT_FOUND;
-            publishBuildPlacementFailed(lastBuildPlacementResult, towerId, worldX, worldY);
-            return lastBuildPlacementResult;
-        }
-        int slotIndex = findNearestBuildSlotIndex(worldX, worldY, BUILD_SLOT_CLICK_RADIUS);
-        if (slotIndex < 0) {
-            lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
-            publishBuildPlacementFailed(lastBuildPlacementResult, towerId, worldX, worldY);
-            return lastBuildPlacementResult;
-        }
-        BuildSlot slot = buildSlots.get(slotIndex);
-        if (slot.isOccupied()) {
-            lastBuildPlacementResult = BuildPlacementResult.SLOT_OCCUPIED;
-            publishBuildPlacementFailed(lastBuildPlacementResult, towerId, worldX, worldY);
-            return lastBuildPlacementResult;
-        }
-        if (!economy.trySpend(tower.getCost())) {
-            lastBuildPlacementResult = BuildPlacementResult.NOT_ENOUGH_GOLD;
-            publishBuildPlacementFailed(lastBuildPlacementResult, towerId, worldX, worldY);
-            return lastBuildPlacementResult;
-        }
-        buildSlots.set(slotIndex, slot.withTower(towerId));
-        placedTowers.add(new PlacedTower(
-            slot.getSlotId(),
-            tower.getId(),
-            slot.getX(),
-            slot.getY(),
-            Math.max(MIN_RUNTIME_TOWER_RANGE, tower.getRange()),
-            Math.max(MIN_RUNTIME_TOWER_DAMAGE, tower.getDamage()),
-            Math.max(MIN_RUNTIME_TOWER_FIRE_RATE_SEC, tower.getFireRateSec()),
-            tower.getTargetingPriority()
-        ));
-        lastBuildPlacementResult = BuildPlacementResult.OK;
-        getEventBus().publish(new TowerBuiltEvent(tower.getId(), slot.getSlotId(), tower.getCost()));
+        lastBuildPlacementResult = buildSystem.tryPlaceTower(runtimeState, towerId, worldX, worldY);
         return lastBuildPlacementResult;
     }
 
     public boolean debugDefeatFirstEnemy() {
-        if (activeEnemies.isEmpty()) {
-            return false;
-        }
-        ActiveEnemy defeated = activeEnemies.remove(0);
-        awardKill(defeated);
-        return true;
+        return combatSystem.debugDefeatFirstEnemy(runtimeState);
     }
 
     public void startLevel() {
-        activeEnemies.clear();
-        placedTowers.clear();
-        activeProjectiles.clear();
-        hitEffects.clear();
-        resetBuildSlots();
-        nextEnemyInstanceId = 1;
-        nextProjectileInstanceId = 1;
-        lastAwardedGold = 0;
-        totalKilledEnemies = 0;
-        runtimeLevelState.start();
-        publishPendingWaveEvents();
+        runtimeState.resetForNewLevel(initialBuildSlots);
+        runtimeState.getRuntimeLevelState().start();
+        waveEventSystem.publishPendingWaveEvents(runtimeState);
     }
 
     public void updateLevel(float deltaSec) {
         float safeDeltaSec = Math.max(0f, deltaSec);
-        runtimeLevelState.update(safeDeltaSec);
-        publishPendingWaveEvents();
-        for (String enemyId : runtimeLevelState.consumePendingSpawnEnemyIds()) {
-            spawnEnemy(enemyId);
-        }
-        updateEnemyMovement(safeDeltaSec);
-        updateProjectiles(safeDeltaSec);
-        updateTowerCombat(safeDeltaSec);
-        updateHitEffects(safeDeltaSec);
-        if (runtimeLevelState.areAllWavesSpawned()
-            && activeEnemies.isEmpty()) {
-            runtimeLevelState.markCompletedIfRunning();
-        }
-    }
-
-    private void spawnEnemy(String enemyId) {
-        Enemy template = enemiesById.get(enemyId);
-        if (template == null || enemyPath.isEmpty()) {
-            return;
-        }
-        Vector2 spawn = enemyPath.get(0);
-        ActiveEnemy enemy = new ActiveEnemy(
-            "enemy-" + nextEnemyInstanceId++,
-            template.getId(),
-            template.getMaxHp(),
-            template.getCurrentHp(),
-            template.getSpeed(),
-            template.getReward(),
-            spawn.x,
-            spawn.y,
-            1
-        );
-        activeEnemies.add(enemy);
-        getEventBus().publish(new EnemySpawnedEvent(
-            enemy.getRuntimeId(),
-            enemy.getEnemyId(),
-            runtimeLevelState.getCurrentWaveNumber()
-        ));
-    }
-
-    private void updateEnemyMovement(float deltaSec) {
-        if (deltaSec <= 0f || activeEnemies.isEmpty() || enemyPath.size() < 2) {
-            return;
-        }
-        List<ActiveEnemy> escapedEnemies = new ArrayList<>();
-        for (ActiveEnemy enemy : activeEnemies) {
-            if (advanceEnemyAlongPath(enemy, deltaSec)) {
-                escapedEnemies.add(enemy);
-            }
-        }
-        if (!escapedEnemies.isEmpty()) {
-            activeEnemies.removeAll(escapedEnemies);
-            for (int i = 0; i < escapedEnemies.size(); i++) {
-                runtimeLevelState.onEnemyEscaped();
-            }
-        }
-    }
-
-    private boolean advanceEnemyAlongPath(ActiveEnemy enemy, float deltaSec) {
-        float safeSpeed = Math.max(MIN_RUNTIME_ENEMY_SPEED, enemy.getSpeed());
-        float remainingDistance = safeSpeed * ENEMY_SPEED_MULTIPLIER * deltaSec;
-        while (remainingDistance > 0f) {
-            int targetIndex = enemy.getTargetWaypointIndex();
-            if (targetIndex >= enemyPath.size()) {
-                return true;
-            }
-            Vector2 target = enemyPath.get(targetIndex);
-            float dx = target.x - enemy.getX();
-            float dy = target.y - enemy.getY();
-            float distanceToTarget = (float) Math.sqrt(dx * dx + dy * dy);
-            if (distanceToTarget <= 0.001f) {
-                enemy.setPosition(target.x, target.y);
-                enemy.setTargetWaypointIndex(targetIndex + 1);
-                continue;
-            }
-            if (remainingDistance >= distanceToTarget) {
-                enemy.setPosition(target.x, target.y);
-                enemy.setTargetWaypointIndex(targetIndex + 1);
-                remainingDistance -= distanceToTarget;
-            } else {
-                float ratio = remainingDistance / distanceToTarget;
-                enemy.setPosition(
-                    enemy.getX() + dx * ratio,
-                    enemy.getY() + dy * ratio
-                );
-                remainingDistance = 0f;
-            }
-        }
-        return enemy.getTargetWaypointIndex() >= enemyPath.size();
-    }
-
-    private void updateTowerCombat(float deltaSec) {
-        if (deltaSec <= 0f || placedTowers.isEmpty() || activeEnemies.isEmpty()) {
-            return;
-        }
-        for (PlacedTower tower : placedTowers) {
-            float cooldown = Math.max(0f, tower.getCooldownSec() - deltaSec);
-            tower.setCooldownSec(cooldown);
-            if (cooldown > 0f) {
-                continue;
-            }
-            ActiveEnemy target = pickTargetForTower(tower);
-            if (target == null) {
-                continue;
-            }
-            tower.setCooldownSec(tower.getFireRateSec());
-            spawnProjectile(tower, target);
-        }
-    }
-
-    private void spawnProjectile(PlacedTower tower, ActiveEnemy target) {
-        activeProjectiles.add(new ActiveProjectile(
-            "projectile-" + nextProjectileInstanceId++,
-            target.getRuntimeId(),
-            tower.getDamage(),
-            tower.getX(),
-            tower.getY(),
-            PROJECTILE_SPEED
-        ));
-    }
-
-    private void updateProjectiles(float deltaSec) {
-        if (deltaSec <= 0f || activeProjectiles.isEmpty()) {
-            return;
-        }
-        List<ActiveProjectile> finishedProjectiles = new ArrayList<>();
-        List<ActiveEnemy> killedEnemies = new ArrayList<>();
-
-        for (ActiveProjectile projectile : activeProjectiles) {
-            ActiveEnemy target = findActiveEnemyByRuntimeId(projectile.getTargetEnemyRuntimeId());
-            if (target == null) {
-                finishedProjectiles.add(projectile);
-                continue;
-            }
-
-            float dx = target.getX() - projectile.getX();
-            float dy = target.getY() - projectile.getY();
-            float distance = (float) Math.sqrt(dx * dx + dy * dy);
-            float step = projectile.getSpeed() * deltaSec;
-            if (distance <= PROJECTILE_HIT_RADIUS || step >= distance) {
-                target.setCurrentHp(target.getCurrentHp() - projectile.getDamage());
-                hitEffects.add(new HitEffect(target.getX() + 10f, target.getY() + 10f, HIT_EFFECT_TTL_SEC));
-                finishedProjectiles.add(projectile);
-                if (target.getCurrentHp() <= 0 && !killedEnemies.contains(target)) {
-                    killedEnemies.add(target);
-                }
-                continue;
-            }
-
-            float ratio = step / distance;
-            projectile.setPosition(
-                projectile.getX() + dx * ratio,
-                projectile.getY() + dy * ratio
-            );
-        }
-
-        if (!finishedProjectiles.isEmpty()) {
-            activeProjectiles.removeAll(finishedProjectiles);
-        }
-        if (!killedEnemies.isEmpty()) {
-            for (ActiveEnemy enemy : killedEnemies) {
-                awardKill(enemy);
-            }
-            activeEnemies.removeAll(killedEnemies);
-        }
-    }
-
-    private void updateHitEffects(float deltaSec) {
-        if (deltaSec <= 0f || hitEffects.isEmpty()) {
-            return;
-        }
-        List<HitEffect> expired = new ArrayList<>();
-        for (HitEffect hitEffect : hitEffects) {
-            hitEffect.setTtlSec(hitEffect.getTtlSec() - deltaSec);
-            if (hitEffect.getTtlSec() <= 0f) {
-                expired.add(hitEffect);
-            }
-        }
-        if (!expired.isEmpty()) {
-            hitEffects.removeAll(expired);
-        }
-    }
-
-    /**
-     * Sticky targeting: keep firing at the locked enemy while it stays in range to avoid erratic retargeting.
-     */
-    private ActiveEnemy pickTargetForTower(PlacedTower tower) {
-        float rangeSq = tower.getRange() * tower.getRange();
-        String lockedId = tower.getLockedTargetRuntimeId();
-        if (lockedId != null) {
-            ActiveEnemy locked = findActiveEnemyByRuntimeId(lockedId);
-            if (locked != null && isEnemyInTowerRange(tower, locked, rangeSq)) {
-                return locked;
-            }
-            tower.setLockedTargetRuntimeId(null);
-        }
-
-        ActiveEnemy chosen;
-        switch (tower.getTargetingPriority()) {
-            case NEAREST:
-                chosen = pickNearestInRange(tower, rangeSq);
-                break;
-            case FIRST:
-                chosen = pickFirstAlongPathInRange(tower, rangeSq);
-                break;
-            case STRONGEST:
-                chosen = pickStrongestInRange(tower, rangeSq);
-                break;
-            default:
-                chosen = pickNearestInRange(tower, rangeSq);
-                break;
-        }
-        if (chosen != null) {
-            tower.setLockedTargetRuntimeId(chosen.getRuntimeId());
-        }
-        return chosen;
-    }
-
-    private static boolean isEnemyInTowerRange(PlacedTower tower, ActiveEnemy enemy, float rangeSq) {
-        return TowerTargeting.distanceSquaredToTower(tower.getX(), tower.getY(), enemy) <= rangeSq;
-    }
-
-    private ActiveEnemy pickNearestInRange(PlacedTower tower, float rangeSq) {
-        ActiveEnemy best = null;
-        for (ActiveEnemy enemy : activeEnemies) {
-            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
-                continue;
-            }
-            if (best == null || TowerTargeting.compareNearest(tower.getX(), tower.getY(), enemy, best) < 0) {
-                best = enemy;
-            }
-        }
-        return best;
-    }
-
-    private ActiveEnemy pickFirstAlongPathInRange(PlacedTower tower, float rangeSq) {
-        ActiveEnemy best = null;
-        for (ActiveEnemy enemy : activeEnemies) {
-            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
-                continue;
-            }
-            if (best == null || TowerTargeting.compareFirstAlongPath(enemyPath, enemy, best) > 0) {
-                best = enemy;
-            }
-        }
-        return best;
-    }
-
-    private ActiveEnemy pickStrongestInRange(PlacedTower tower, float rangeSq) {
-        ActiveEnemy best = null;
-        for (ActiveEnemy enemy : activeEnemies) {
-            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
-                continue;
-            }
-            if (best == null || TowerTargeting.compareStrongest(enemy, best) > 0) {
-                best = enemy;
-            }
-        }
-        return best;
-    }
-
-    private void awardKill(ActiveEnemy enemy) {
-        int reward = economy.calculateKillReward(enemy.getReward());
-        economy.addGold(reward);
-        lastAwardedGold = reward;
-        totalKilledEnemies++;
-        getEventBus().publish(new EnemyKilledEvent(
-            enemy.getRuntimeId(),
-            enemy.getEnemyId(),
-            reward,
-            enemy.getX(),
-            enemy.getY()
-        ));
-    }
-
-    private void publishBuildPlacementFailed(
-        BuildPlacementResult reason,
-        String towerId,
-        float worldX,
-        float worldY
-    ) {
-        getEventBus().publish(new BuildPlacementFailedEvent(
-            towerId,
-            reason.name(),
-            worldX,
-            worldY
-        ));
-    }
-
-    private ActiveEnemy findActiveEnemyByRuntimeId(String runtimeId) {
-        for (ActiveEnemy activeEnemy : activeEnemies) {
-            if (activeEnemy.getRuntimeId().equals(runtimeId)) {
-                return activeEnemy;
-            }
-        }
-        return null;
-    }
-
-    private void publishPendingWaveEvents() {
-        for (int waveNumber : runtimeLevelState.consumePendingWaveStartedNumbers()) {
-            getEventBus().publish(new WaveStartedEvent(waveNumber, runtimeLevelState.getTotalWaves()));
-        }
-        for (int waveNumber : runtimeLevelState.consumePendingWaveCompletedNumbers()) {
-            getEventBus().publish(new WaveCompletedEvent(waveNumber, runtimeLevelState.getTotalWaves()));
+        runtimeState.getRuntimeLevelState().update(safeDeltaSec);
+        waveEventSystem.publishPendingWaveEvents(runtimeState);
+        spawnSystem.processPendingSpawns(runtimeState);
+        combatSystem.update(runtimeState, safeDeltaSec);
+        if (runtimeState.getRuntimeLevelState().areAllWavesSpawned()
+            && runtimeState.getActiveEnemies().isEmpty()) {
+            runtimeState.getRuntimeLevelState().markCompletedIfRunning();
         }
     }
 
@@ -626,29 +236,6 @@ public final class GameFacade {
             indexed.put(tower.getId(), tower);
         }
         return indexed;
-    }
-
-    private int findNearestBuildSlotIndex(float worldX, float worldY, float radius) {
-        float bestDistanceSq = radius * radius;
-        int bestIndex = -1;
-        for (int i = 0; i < buildSlots.size(); i++) {
-            BuildSlot slot = buildSlots.get(i);
-            float dx = worldX - slot.getX();
-            float dy = worldY - slot.getY();
-            float distanceSq = dx * dx + dy * dy;
-            if (distanceSq <= bestDistanceSq) {
-                bestDistanceSq = distanceSq;
-                bestIndex = i;
-            }
-        }
-        return bestIndex;
-    }
-
-    private void resetBuildSlots() {
-        for (int i = 0; i < buildSlots.size(); i++) {
-            BuildSlot slot = buildSlots.get(i);
-            buildSlots.set(i, new BuildSlot(slot.getSlotId(), slot.getX(), slot.getY(), false, null));
-        }
     }
 
     private static List<Vector2> defaultEnemyPath() {
