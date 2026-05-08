@@ -27,6 +27,9 @@ public final class GameRuntimeView {
     private final GameFacade.BuildPlacementResult lastBuildPlacementResult;
     private final int totalKilledEnemies;
     private final int lastAwardedGold;
+    private final int totalGoldSpent;
+    private final int totalGoldEarned;
+    private final int wavesReached;
     private final int enemySpawnedEvents;
     private final int enemyKilledEvents;
     private final int towerBuiltEvents;
@@ -47,6 +50,9 @@ public final class GameRuntimeView {
         GameFacade.BuildPlacementResult lastBuildPlacementResult,
         int totalKilledEnemies,
         int lastAwardedGold,
+        int totalGoldSpent,
+        int totalGoldEarned,
+        int wavesReached,
         int enemySpawnedEvents,
         int enemyKilledEvents,
         int towerBuiltEvents,
@@ -66,6 +72,9 @@ public final class GameRuntimeView {
         this.lastBuildPlacementResult = Objects.requireNonNull(lastBuildPlacementResult, "lastBuildPlacementResult");
         this.totalKilledEnemies = totalKilledEnemies;
         this.lastAwardedGold = lastAwardedGold;
+        this.totalGoldSpent = totalGoldSpent;
+        this.totalGoldEarned = totalGoldEarned;
+        this.wavesReached = wavesReached;
         this.enemySpawnedEvents = enemySpawnedEvents;
         this.enemyKilledEvents = enemyKilledEvents;
         this.towerBuiltEvents = towerBuiltEvents;
@@ -114,6 +123,18 @@ public final class GameRuntimeView {
 
     public int getLastAwardedGold() {
         return lastAwardedGold;
+    }
+
+    public int getTotalGoldSpent() {
+        return totalGoldSpent;
+    }
+
+    public int getTotalGoldEarned() {
+        return totalGoldEarned;
+    }
+
+    public int getWavesReached() {
+        return wavesReached;
     }
 
     public int getEnemySpawnedEvents() {

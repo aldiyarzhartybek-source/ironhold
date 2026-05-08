@@ -164,6 +164,7 @@ public final class GameScreen extends ScreenAdapter {
     private void showEndOverlay(LevelStatus status) {
         endStateUi.getStage().clear();
         endOverlayVisible = true;
+        GameRuntimeView view = game.getRuntimeView();
 
         String titleText = status == LevelStatus.COMPLETED ? "Victory!" : "Defeat";
         String subtitleText = status == LevelStatus.COMPLETED
@@ -172,6 +173,11 @@ public final class GameScreen extends ScreenAdapter {
 
         Label title = new Label(titleText, endStateUi.getSkin(), "label");
         Label subtitle = new Label(subtitleText, endStateUi.getSkin(), "label");
+        Label wavesReached = new Label("Waves reached: " + view.getWavesReached() + "/" + view.getLevelState().getTotalWaves(), endStateUi.getSkin(), "label");
+        Label enemiesKilled = new Label("Enemies killed: " + view.getTotalKilledEnemies(), endStateUi.getSkin(), "label");
+        Label goldSpent = new Label("Gold spent: " + view.getTotalGoldSpent(), endStateUi.getSkin(), "label");
+        Label goldEarned = new Label("Gold earned: " + view.getTotalGoldEarned(), endStateUi.getSkin(), "label");
+        Label towersBuilt = new Label("Towers built: " + view.getPlacedTowers().size(), endStateUi.getSkin(), "label");
 
         TextButton restartButton = new TextButton("Restart", endStateUi.getSkin());
         restartButton.addListener(new ChangeListener() {
@@ -191,12 +197,32 @@ public final class GameScreen extends ScreenAdapter {
             }
         });
 
+        TextButton nextButton = null;
+        if (status == LevelStatus.COMPLETED) {
+            nextButton = new TextButton("Next", endStateUi.getSkin());
+            nextButton.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                    hideEndOverlay();
+                    game.getScreens().goTo(ScreenId.MENU);
+                }
+            });
+        }
+
         Table root = new Table();
         root.setFillParent(true);
         root.defaults().width(260f).height(52f).pad(8f);
         root.add(title).padBottom(4f).row();
-        root.add(subtitle).padBottom(16f).row();
+        root.add(subtitle).padBottom(10f).row();
+        root.add(wavesReached).height(28f).row();
+        root.add(enemiesKilled).height(28f).row();
+        root.add(goldSpent).height(28f).row();
+        root.add(goldEarned).height(28f).row();
+        root.add(towersBuilt).height(28f).padBottom(12f).row();
         root.add(restartButton).row();
+        if (nextButton != null) {
+            root.add(nextButton).row();
+        }
         root.add(backButton);
         endStateUi.getStage().addActor(root);
         Gdx.input.setInputProcessor(endStateUi.getStage());
