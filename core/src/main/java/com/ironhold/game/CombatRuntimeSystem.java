@@ -271,6 +271,7 @@ public final class CombatRuntimeSystem {
     private void awardKill(GameRuntimeState state, ActiveEnemy enemy) {
         int reward = economy.calculateKillReward(enemy.getReward());
         economy.addGold(reward);
+        state.addGoldEarned(reward);
         state.setLastAwardedGold(reward);
         state.incrementTotalKilledEnemies();
         eventBus.publish(new EnemyKilledEvent(

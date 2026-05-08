@@ -28,6 +28,8 @@ public final class GameRuntimeState {
     private int nextProjectileInstanceId;
     private int lastAwardedGold;
     private int totalKilledEnemies;
+    private int totalGoldSpent;
+    private int totalGoldEarned;
 
     public GameRuntimeState(
         RuntimeLevelState runtimeLevelState,
@@ -47,6 +49,8 @@ public final class GameRuntimeState {
         this.nextProjectileInstanceId = 1;
         this.lastAwardedGold = 0;
         this.totalKilledEnemies = 0;
+        this.totalGoldSpent = 0;
+        this.totalGoldEarned = 0;
     }
 
     public void resetForNewLevel(List<BuildSlot> initialBuildSlots) {
@@ -60,6 +64,8 @@ public final class GameRuntimeState {
         nextProjectileInstanceId = 1;
         lastAwardedGold = 0;
         totalKilledEnemies = 0;
+        totalGoldSpent = 0;
+        totalGoldEarned = 0;
     }
 
     public RuntimeLevelState getRuntimeLevelState() {
@@ -120,5 +126,27 @@ public final class GameRuntimeState {
 
     public void incrementTotalKilledEnemies() {
         this.totalKilledEnemies++;
+    }
+
+    public int getTotalGoldSpent() {
+        return totalGoldSpent;
+    }
+
+    public void addGoldSpent(int amount) {
+        if (amount <= 0) {
+            return;
+        }
+        totalGoldSpent += amount;
+    }
+
+    public int getTotalGoldEarned() {
+        return totalGoldEarned;
+    }
+
+    public void addGoldEarned(int amount) {
+        if (amount <= 0) {
+            return;
+        }
+        totalGoldEarned += amount;
     }
 }
