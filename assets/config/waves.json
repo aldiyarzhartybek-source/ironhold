@@ -2,13 +2,33 @@
   "waves": [
     {
       "enemyId": "grunt",
+      "count": 8,
+      "spawnIntervalSec": 1.35
+    },
+    {
+      "enemyId": "grunt",
       "count": 10,
       "spawnIntervalSec": 1.25
     },
     {
       "enemyId": "runner",
-      "count": 6,
-      "spawnIntervalSec": 1.1
+      "count": 5,
+      "spawnIntervalSec": 1.15
+    },
+    {
+      "enemyId": "grunt",
+      "count": 12,
+      "spawnIntervalSec": 1.05
+    },
+    {
+      "enemyId": "runner",
+      "count": 8,
+      "spawnIntervalSec": 0.98
+    },
+    {
+      "enemyId": "runner",
+      "count": 10,
+      "spawnIntervalSec": 0.9
     }
   ]
 }
