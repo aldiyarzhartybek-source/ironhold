@@ -33,6 +33,11 @@ import java.util.Objects;
 public final class GameScreen extends ScreenAdapter {
     private static final float ROAD_WIDTH = 42f;
     private static final float ROAD_MARKER_STEP = 24f;
+    private static final float ENEMY_SIZE = 20f;
+    private static final float ENEMY_HP_BAR_WIDTH = 20f;
+    private static final float ENEMY_HP_BAR_HEIGHT = 3f;
+    private static final float ENEMY_PROGRESS_BAR_WIDTH = 16f;
+    private static final float ENEMY_PROGRESS_BAR_HEIGHT = 2f;
 
     private enum RenderLayer {
         GROUND,
@@ -246,10 +251,37 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     private void drawEnemies(GameRuntimeView view) {
+        int pathSegments = Math.max(1, view.getEnemyPath().size() - 1);
         for (ActiveEnemy enemy : view.getActiveEnemies()) {
             batch.setColor(0.88f, 0.3f, 0.3f, 1f);
-            batch.draw(testTexture, enemy.getX(), enemy.getY(), 20f, 20f);
+            batch.draw(testTexture, enemy.getX(), enemy.getY(), ENEMY_SIZE, ENEMY_SIZE);
+            drawEnemyHpBar(enemy);
+            drawEnemyProgressBar(enemy, pathSegments);
         }
+    }
+
+    private void drawEnemyHpBar(ActiveEnemy enemy) {
+        float barX = enemy.getX();
+        float barY = enemy.getY() + ENEMY_SIZE + 3f;
+        float hpRatio = enemy.getMaxHp() <= 0
+            ? 0f
+            : Math.max(0f, Math.min(1f, enemy.getCurrentHp() / (float) enemy.getMaxHp()));
+
+        batch.setColor(0.1f, 0.12f, 0.12f, 0.9f);
+        batch.draw(testTexture, barX, barY, ENEMY_HP_BAR_WIDTH, ENEMY_HP_BAR_HEIGHT);
+        batch.setColor(0.18f, 0.85f, 0.34f, 0.95f);
+        batch.draw(testTexture, barX, barY, ENEMY_HP_BAR_WIDTH * hpRatio, ENEMY_HP_BAR_HEIGHT);
+    }
+
+    private void drawEnemyProgressBar(ActiveEnemy enemy, int pathSegments) {
+        float barX = enemy.getX() + 2f;
+        float barY = enemy.getY() + ENEMY_SIZE + 8f;
+        float progressRatio = Math.max(0f, Math.min(1f, enemy.getTargetWaypointIndex() / (float) pathSegments));
+
+        batch.setColor(0.1f, 0.12f, 0.12f, 0.75f);
+        batch.draw(testTexture, barX, barY, ENEMY_PROGRESS_BAR_WIDTH, ENEMY_PROGRESS_BAR_HEIGHT);
+        batch.setColor(0.95f, 0.8f, 0.24f, 0.95f);
+        batch.draw(testTexture, barX, barY, ENEMY_PROGRESS_BAR_WIDTH * progressRatio, ENEMY_PROGRESS_BAR_HEIGHT);
     }
 
     private void drawTowers(GameRuntimeView view) {
