@@ -2,6 +2,7 @@ package com.ironhold.game;
 
 import com.badlogic.gdx.math.Vector2;
 import com.ironhold.assets.AssetService;
+import com.ironhold.events.BuildPlacementFailedEvent;
 import com.ironhold.events.EnemyKilledEvent;
 import com.ironhold.events.EnemySpawnedEvent;
 import com.ironhold.events.EventBus;
@@ -211,10 +212,12 @@ public final class GameFacade {
     public boolean tryPlaceTowerAt(float worldX, float worldY) {
         if (towers.isEmpty()) {
             lastBuildPlacementResult = BuildPlacementResult.NO_TOWERS_AVAILABLE;
+            publishBuildPlacementFailed(lastBuildPlacementResult, null, worldX, worldY);
             return false;
         }
         if (selectedTowerId == null) {
             lastBuildPlacementResult = BuildPlacementResult.NO_TOWERS_AVAILABLE;
+            publishBuildPlacementFailed(lastBuildPlacementResult, null, worldX, worldY);
             return false;
         }
         return tryPlaceTower(worldX, worldY, selectedTowerId) == BuildPlacementResult.OK;
@@ -241,20 +244,24 @@ public final class GameFacade {
         Tower tower = towersById.get(towerId);
         if (tower == null) {
             lastBuildPlacementResult = BuildPlacementResult.TOWER_NOT_FOUND;
+            publishBuildPlacementFailed(lastBuildPlacementResult, towerId, worldX, worldY);
             return lastBuildPlacementResult;
         }
         int slotIndex = findNearestBuildSlotIndex(worldX, worldY, BUILD_SLOT_CLICK_RADIUS);
         if (slotIndex < 0) {
             lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
+            publishBuildPlacementFailed(lastBuildPlacementResult, towerId, worldX, worldY);
             return lastBuildPlacementResult;
         }
         BuildSlot slot = buildSlots.get(slotIndex);
         if (slot.isOccupied()) {
             lastBuildPlacementResult = BuildPlacementResult.SLOT_OCCUPIED;
+            publishBuildPlacementFailed(lastBuildPlacementResult, towerId, worldX, worldY);
             return lastBuildPlacementResult;
         }
         if (!economy.trySpend(tower.getCost())) {
             lastBuildPlacementResult = BuildPlacementResult.NOT_ENOUGH_GOLD;
+            publishBuildPlacementFailed(lastBuildPlacementResult, towerId, worldX, worldY);
             return lastBuildPlacementResult;
         }
         buildSlots.set(slotIndex, slot.withTower(towerId));
@@ -564,7 +571,27 @@ public final class GameFacade {
         economy.addGold(reward);
         lastAwardedGold = reward;
         totalKilledEnemies++;
-        getEventBus().publish(new EnemyKilledEvent(enemy.getRuntimeId(), enemy.getEnemyId(), reward));
+        getEventBus().publish(new EnemyKilledEvent(
+            enemy.getRuntimeId(),
+            enemy.getEnemyId(),
+            reward,
+            enemy.getX(),
+            enemy.getY()
+        ));
+    }
+
+    private void publishBuildPlacementFailed(
+        BuildPlacementResult reason,
+        String towerId,
+        float worldX,
+        float worldY
+    ) {
+        getEventBus().publish(new BuildPlacementFailedEvent(
+            towerId,
+            reason.name(),
+            worldX,
+            worldY
+        ));
     }
 
     private ActiveEnemy findActiveEnemyByRuntimeId(String runtimeId) {
