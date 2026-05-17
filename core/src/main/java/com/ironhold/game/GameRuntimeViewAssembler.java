@@ -17,7 +17,12 @@ public final class GameRuntimeViewAssembler {
         this.availableTowers = List.copyOf(Objects.requireNonNull(availableTowers, "availableTowers"));
     }
 
-    public GameRuntimeView assemble(GameRuntimeState state, int gold, GameFacade.BuildPlacementResult lastBuildPlacementResult) {
+    public GameRuntimeView assemble(
+        GameRuntimeState state,
+        int gold,
+        GameFacade.BuildPlacementResult lastBuildPlacementResult,
+        GameMode gameMode
+    ) {
         return new GameRuntimeView(
             state.getRuntimeLevelState(),
             state.getBuildSlots(),
@@ -39,7 +44,8 @@ public final class GameRuntimeViewAssembler {
             eventTracker.getWaveCompletedEvents(),
             state.getEnemyPath(),
             availableTowers,
-            state.getSelectedTowerId()
+            state.getSelectedTowerId(),
+            gameMode
         );
     }
 }
