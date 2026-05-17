@@ -72,6 +72,15 @@ public final class MenuScreen extends ScreenAdapter {
             }
         });
 
+        TextButton oneLifeButton = new TextButton("Play One Life", ui.getSkin());
+        oneLifeButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                game.setGameMode(GameMode.ONE_LIFE);
+                game.getScreens().goTo(ScreenId.GAME);
+            }
+        });
+
         TextButton exitButton = new TextButton("Exit", ui.getSkin());
         exitButton.addListener(new ChangeListener() {
             @Override
@@ -87,6 +96,7 @@ public final class MenuScreen extends ScreenAdapter {
         root.add(title).padBottom(22f).row();
         root.add(startButton).row();
         root.add(rushButton).row();
+        root.add(oneLifeButton).row();
         root.add(exitButton);
         ui.getStage().addActor(root);
     }
