@@ -217,67 +217,57 @@ public final class GameScreen extends ScreenAdapter {
         endStateUi.getStage().clear();
         endOverlayVisible = true;
         GameRuntimeView view = game.getRuntimeView();
+        boolean victory = status == LevelStatus.COMPLETED;
 
-        String titleText = status == LevelStatus.COMPLETED ? "Victory!" : "Defeat";
-        String subtitleText = status == LevelStatus.COMPLETED
-            ? "All waves are cleared."
-            : "Base lives are depleted.";
+        Label title = new Label(victory ? "Victory!" : "Defeat", endStateUi.getSkin(), "label");
 
-        Label title = new Label(titleText, endStateUi.getSkin(), "label");
-        Label subtitle = new Label(subtitleText, endStateUi.getSkin(), "label");
-        Label wavesReached = new Label("Waves reached: " + view.getWavesReached() + "/" + view.getLevelState().getTotalWaves(), endStateUi.getSkin(), "label");
-        Label enemiesKilled = new Label("Enemies killed: " + view.getTotalKilledEnemies(), endStateUi.getSkin(), "label");
-        Label goldSpent = new Label("Gold spent: " + view.getTotalGoldSpent(), endStateUi.getSkin(), "label");
-        Label goldEarned = new Label("Gold earned: " + view.getTotalGoldEarned(), endStateUi.getSkin(), "label");
-        Label towersBuilt = new Label("Towers built: " + view.getPlacedTowers().size(), endStateUi.getSkin(), "label");
-        Label timePlayed = new Label("Time: " + view.getElapsedLevelTimeFormatted(), endStateUi.getSkin(), "label");
+        Table root = new Table();
+        root.setFillParent(true);
+        root.defaults().width(280f).pad(8f);
+        root.add(title).padBottom(victory ? 12f : 20f).row();
 
-        TextButton restartButton = new TextButton("Restart", endStateUi.getSkin());
-        restartButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                hideEndOverlay();
-                game.startLevel();
-            }
-        });
+        if (victory) {
+            root.defaults().height(28f);
+            root.add(new Label("Kills: " + view.getTotalKilledEnemies(), endStateUi.getSkin(), "label")).row();
+            root.add(new Label("Gold spent: " + view.getTotalGoldSpent(), endStateUi.getSkin(), "label")).row();
+            root.add(new Label("Time: " + view.getElapsedLevelTimeFormatted(), endStateUi.getSkin(), "label"))
+                .padBottom(16f)
+                .row();
 
-        TextButton backButton = new TextButton("Back to menu", endStateUi.getSkin());
-        backButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                hideEndOverlay();
-                game.getScreens().goTo(ScreenId.MENU);
-            }
-        });
-
-        TextButton nextButton = null;
-        if (status == LevelStatus.COMPLETED) {
-            nextButton = new TextButton("Next", endStateUi.getSkin());
-            nextButton.addListener(new ChangeListener() {
+            TextButton continueButton = new TextButton("Continue", endStateUi.getSkin());
+            continueButton.addListener(new ChangeListener() {
                 @Override
                 public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
                     hideEndOverlay();
                     game.getScreens().goTo(ScreenId.MENU);
                 }
             });
+            root.defaults().height(52f);
+            root.add(continueButton);
+        } else {
+            TextButton retryButton = new TextButton("Retry", endStateUi.getSkin());
+            retryButton.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                    hideEndOverlay();
+                    game.startLevel();
+                }
+            });
+
+            TextButton levelSelectButton = new TextButton("Level Select", endStateUi.getSkin());
+            levelSelectButton.addListener(new ChangeListener() {
+                @Override
+                public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                    hideEndOverlay();
+                    game.getScreens().goTo(ScreenId.MENU);
+                }
+            });
+
+            root.defaults().height(52f);
+            root.add(retryButton).row();
+            root.add(levelSelectButton);
         }
 
-        Table root = new Table();
-        root.setFillParent(true);
-        root.defaults().width(260f).height(52f).pad(8f);
-        root.add(title).padBottom(4f).row();
-        root.add(subtitle).padBottom(10f).row();
-        root.add(wavesReached).height(28f).row();
-        root.add(enemiesKilled).height(28f).row();
-        root.add(goldSpent).height(28f).row();
-        root.add(goldEarned).height(28f).row();
-        root.add(towersBuilt).height(28f).row();
-        root.add(timePlayed).height(28f).padBottom(12f).row();
-        root.add(restartButton).row();
-        if (nextButton != null) {
-            root.add(nextButton).row();
-        }
-        root.add(backButton);
         endStateUi.getStage().addActor(root);
         Gdx.input.setInputProcessor(endStateUi.getStage());
     }
