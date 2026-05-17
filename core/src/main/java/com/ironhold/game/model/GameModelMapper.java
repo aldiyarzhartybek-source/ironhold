@@ -3,7 +3,6 @@ package com.ironhold.game.model;
 import com.ironhold.config.GameConfig;
 import com.ironhold.config.dto.EnemyConfigDto;
 import com.ironhold.config.dto.TowerConfigDto;
-import com.ironhold.config.dto.WaveEntryDto;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,10 +13,6 @@ import java.util.Objects;
  */
 public final class GameModelMapper {
     private static final float TILE_SIZE_PX = 64f;
-    private static final float PROGRESSION_COUNT_STEP = 0.12f;
-    private static final float PROGRESSION_INTERVAL_STEP = 0.04f;
-    private static final float MIN_SPAWN_INTERVAL_SEC = 0.35f;
-
     private GameModelMapper() {
     }
 
@@ -48,21 +43,7 @@ public final class GameModelMapper {
 
     public static List<WaveDefinition> mapWaves(GameConfig config) {
         Objects.requireNonNull(config, "config");
-        List<WaveDefinition> result = new ArrayList<>();
-        int waveIndex = 0;
-        for (WaveEntryDto wave : config.getWaves().waves) {
-            int scaledCount = Math.max(
-                1,
-                Math.round(wave.count * (1f + PROGRESSION_COUNT_STEP * waveIndex))
-            );
-            float scaledInterval = Math.max(
-                MIN_SPAWN_INTERVAL_SEC,
-                wave.spawnIntervalSec * (1f - PROGRESSION_INTERVAL_STEP * waveIndex)
-            );
-            result.add(new WaveDefinition(wave.enemyId, scaledCount, scaledInterval));
-            waveIndex++;
-        }
-        return result;
+        return WaveDefinitionFactory.fromLevelWaves(config.getWaves());
     }
 
     public static EconomyState mapEconomy(GameConfig config) {
