@@ -75,13 +75,14 @@ public final class StageHud {
         font.draw(batch, "Active enemies: " + view.getActiveEnemies().size(), LEFT_X, baseY - LINE_HEIGHT * 4f);
         font.draw(batch, "Escaped enemies: " + level.getEscapedEnemies(), LEFT_X, baseY - LINE_HEIGHT * 5f);
         font.draw(batch, "Placed towers: " + view.getPlacedTowers().size(), LEFT_X, baseY - LINE_HEIGHT * 6f);
-        font.draw(batch, "Killed enemies: " + view.getTotalKilledEnemies(), LEFT_X, baseY - LINE_HEIGHT * 7f);
-        font.draw(batch, "Last reward: +" + view.getLastAwardedGold() + " (press K to test)", LEFT_X, baseY - LINE_HEIGHT * 8f);
-        font.draw(batch, "Event EnemySpawned: " + view.getEnemySpawnedEvents(), LEFT_X, baseY - LINE_HEIGHT * 9f);
-        font.draw(batch, "Event EnemyKilled: " + view.getEnemyKilledEvents(), LEFT_X, baseY - LINE_HEIGHT * 10f);
-        font.draw(batch, "Event TowerBuilt: " + view.getTowerBuiltEvents(), LEFT_X, baseY - LINE_HEIGHT * 11f);
-        font.draw(batch, "Event WaveStarted: " + view.getWaveStartedEvents(), LEFT_X, baseY - LINE_HEIGHT * 12f);
-        font.draw(batch, "Event WaveCompleted: " + view.getWaveCompletedEvents(), LEFT_X, baseY - LINE_HEIGHT * 13f);
+        font.draw(batch, "Kills: " + view.getTotalKilledEnemies(), LEFT_X, baseY - LINE_HEIGHT * 7f);
+        font.draw(batch, "Gold spent: " + view.getTotalGoldSpent(), LEFT_X, baseY - LINE_HEIGHT * 8f);
+        font.draw(batch, "Last reward: +" + view.getLastAwardedGold() + " (press K to test)", LEFT_X, baseY - LINE_HEIGHT * 9f);
+        font.draw(batch, "Event EnemySpawned: " + view.getEnemySpawnedEvents(), LEFT_X, baseY - LINE_HEIGHT * 10f);
+        font.draw(batch, "Event EnemyKilled: " + view.getEnemyKilledEvents(), LEFT_X, baseY - LINE_HEIGHT * 11f);
+        font.draw(batch, "Event TowerBuilt: " + view.getTowerBuiltEvents(), LEFT_X, baseY - LINE_HEIGHT * 12f);
+        font.draw(batch, "Event WaveStarted: " + view.getWaveStartedEvents(), LEFT_X, baseY - LINE_HEIGHT * 13f);
+        font.draw(batch, "Event WaveCompleted: " + view.getWaveCompletedEvents(), LEFT_X, baseY - LINE_HEIGHT * 14f);
     }
 
     private static String formatSpeedMultiplier(float timeScale) {

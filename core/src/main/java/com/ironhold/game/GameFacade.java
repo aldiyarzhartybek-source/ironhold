@@ -151,7 +151,11 @@ public final class GameFacade {
     }
 
     public int getTotalKilledEnemies() {
-        return runtimeState.getTotalKilledEnemies();
+        return runtimeState.getSessionStats().getKills();
+    }
+
+    public int getTotalGoldSpent() {
+        return runtimeState.getSessionStats().getGoldSpent();
     }
 
     public GameplayEventTracker getEventTracker() {
