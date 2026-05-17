@@ -221,7 +221,7 @@ public final class GameFacade {
     public void startLevel(GameMode mode) {
         this.gameMode = Objects.requireNonNull(mode, "mode");
         runtimeState.resetForNewLevel(initialBuildSlots);
-        runtimeState.getRuntimeLevelState().start();
+        runtimeState.getRuntimeLevelState().start(mode);
         waveEventSystem.publishPendingWaveEvents(runtimeState);
         if (gameMode == GameMode.RUSH) {
             maybeAutoStartNextWaveInRush();

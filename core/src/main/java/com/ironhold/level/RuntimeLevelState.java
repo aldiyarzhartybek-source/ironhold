@@ -1,5 +1,7 @@
 package com.ironhold.level;
 
+import com.ironhold.game.GameMode;
+import com.ironhold.game.GameModeRules;
 import com.ironhold.game.model.WaveDefinition;
 
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ public final class RuntimeLevelState {
     private int totalSpawnedEnemies;
     private int escapedEnemies;
     private int baseLives;
+    private GameMode sessionMode;
     private float spawnTimerSec;
     private String lastSpawnedEnemyId;
     private boolean waveSpawnExhausted;
@@ -32,7 +35,8 @@ public final class RuntimeLevelState {
         this.spawnedInCurrentWave = 0;
         this.totalSpawnedEnemies = 0;
         this.escapedEnemies = 0;
-        this.baseLives = 20;
+        this.baseLives = 0;
+        this.sessionMode = GameMode.CLASSIC;
         this.spawnTimerSec = 0f;
         this.lastSpawnedEnemyId = "";
         this.waveSpawnExhausted = false;
@@ -42,8 +46,9 @@ public final class RuntimeLevelState {
         this.allWavesSpawned = false;
     }
 
-    public void start() {
+    public void start(GameMode mode) {
         resetForNewRun();
+        configureForMode(mode);
         if (waves.isEmpty()) {
             status = LevelStatus.COMPLETED;
             allWavesSpawned = true;
@@ -203,10 +208,24 @@ public final class RuntimeLevelState {
             return;
         }
         escapedEnemies++;
+        if (sessionMode == GameMode.ONE_LIFE) {
+            baseLives = 0;
+            status = LevelStatus.FAILED;
+            return;
+        }
         baseLives = Math.max(0, baseLives - 1);
         if (baseLives <= 0) {
             status = LevelStatus.FAILED;
         }
+    }
+
+    public GameMode getSessionMode() {
+        return sessionMode;
+    }
+
+    public void configureForMode(GameMode mode) {
+        this.sessionMode = Objects.requireNonNull(mode, "mode");
+        this.baseLives = GameModeRules.startingLives(mode);
     }
 
     public boolean areAllWavesSpawned() {
@@ -226,7 +245,7 @@ public final class RuntimeLevelState {
         spawnedInCurrentWave = 0;
         totalSpawnedEnemies = 0;
         escapedEnemies = 0;
-        baseLives = 20;
+        baseLives = 0;
         spawnTimerSec = 0f;
         lastSpawnedEnemyId = "";
         waveSpawnExhausted = false;
