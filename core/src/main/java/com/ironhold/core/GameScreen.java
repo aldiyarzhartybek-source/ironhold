@@ -90,6 +90,7 @@ public final class GameScreen extends ScreenAdapter {
     public void render(float delta) {
         if (!endOverlayVisible) {
             handleBuildPlacementInput();
+            handleWaveStartInput();
             handleDebugEnemyKillInput();
         }
         game.updateLevel(delta);
@@ -121,6 +122,12 @@ public final class GameScreen extends ScreenAdapter {
         touchWorld.set(Gdx.input.getX(), Gdx.input.getY(), 0f);
         camera.unproject(touchWorld);
         game.handlePrimaryAction(touchWorld.x, touchWorld.y);
+    }
+
+    private void handleWaveStartInput() {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            game.startNextWave();
+        }
     }
 
     private void handleDebugEnemyKillInput() {

@@ -10,6 +10,7 @@ public final class RuntimeLevelState {
 
     private final List<WaveDefinition> waves;
     private LevelStatus status;
+    private WavePhase wavePhase;
     private int currentWaveIndex;
     private int spawnedInCurrentWave;
     private int totalSpawnedEnemies;
@@ -17,6 +18,7 @@ public final class RuntimeLevelState {
     private int baseLives;
     private float spawnTimerSec;
     private String lastSpawnedEnemyId;
+    private boolean waveSpawnExhausted;
     private final List<String> pendingSpawnEnemyIds;
     private final List<Integer> pendingWaveStartedNumbers;
     private final List<Integer> pendingWaveCompletedNumbers;
@@ -25,6 +27,7 @@ public final class RuntimeLevelState {
     public RuntimeLevelState(List<WaveDefinition> waves) {
         this.waves = List.copyOf(Objects.requireNonNull(waves, "waves"));
         this.status = LevelStatus.IDLE;
+        this.wavePhase = WavePhase.BETWEEN_WAVES;
         this.currentWaveIndex = 0;
         this.spawnedInCurrentWave = 0;
         this.totalSpawnedEnemies = 0;
@@ -32,6 +35,7 @@ public final class RuntimeLevelState {
         this.baseLives = 20;
         this.spawnTimerSec = 0f;
         this.lastSpawnedEnemyId = "";
+        this.waveSpawnExhausted = false;
         this.pendingSpawnEnemyIds = new ArrayList<>();
         this.pendingWaveStartedNumbers = new ArrayList<>();
         this.pendingWaveCompletedNumbers = new ArrayList<>();
@@ -46,15 +50,32 @@ public final class RuntimeLevelState {
             return;
         }
         status = LevelStatus.RUNNING;
-        pendingWaveStartedNumbers.add(1);
+        wavePhase = WavePhase.BETWEEN_WAVES;
+    }
+
+    public boolean canStartNextWave() {
+        return status == LevelStatus.RUNNING
+            && wavePhase == WavePhase.BETWEEN_WAVES
+            && hasCurrentWave();
+    }
+
+    public boolean startNextWave() {
+        if (!canStartNextWave()) {
+            return false;
+        }
+        wavePhase = WavePhase.WAVE_ACTIVE;
+        spawnedInCurrentWave = 0;
+        spawnTimerSec = 0f;
+        waveSpawnExhausted = false;
+        pendingWaveStartedNumbers.add(currentWaveIndex + 1);
+        return true;
     }
 
     public void update(float deltaSec) {
-        if (status != LevelStatus.RUNNING) {
+        if (status != LevelStatus.RUNNING || wavePhase != WavePhase.WAVE_ACTIVE) {
             return;
         }
         if (!hasCurrentWave()) {
-            allWavesSpawned = true;
             return;
         }
 
@@ -71,17 +92,32 @@ public final class RuntimeLevelState {
         }
 
         if (spawnedInCurrentWave >= currentWave.getCount()) {
-            int completedWaveNumber = currentWaveIndex + 1;
-            currentWaveIndex++;
-            spawnedInCurrentWave = 0;
-            spawnTimerSec = 0f;
-            pendingWaveCompletedNumbers.add(completedWaveNumber);
-            if (hasCurrentWave()) {
-                pendingWaveStartedNumbers.add(currentWaveIndex + 1);
-            }
-            if (!hasCurrentWave()) {
-                allWavesSpawned = true;
-            }
+            waveSpawnExhausted = true;
+        }
+    }
+
+    /**
+     * Completes the active wave after all spawns are done and the field is clear.
+     */
+    public void tryCompleteActiveWave(boolean fieldIsEmpty) {
+        if (status != LevelStatus.RUNNING
+            || wavePhase != WavePhase.WAVE_ACTIVE
+            || !waveSpawnExhausted
+            || !fieldIsEmpty) {
+            return;
+        }
+
+        int completedWaveNumber = currentWaveIndex + 1;
+        pendingWaveCompletedNumbers.add(completedWaveNumber);
+
+        currentWaveIndex++;
+        spawnedInCurrentWave = 0;
+        spawnTimerSec = 0f;
+        waveSpawnExhausted = false;
+        wavePhase = WavePhase.BETWEEN_WAVES;
+
+        if (!hasCurrentWave()) {
+            allWavesSpawned = true;
         }
     }
 
@@ -89,6 +125,13 @@ public final class RuntimeLevelState {
         return status;
     }
 
+    public WavePhase getWavePhase() {
+        return wavePhase;
+    }
+
+    /**
+     * Number of the wave in progress, or the next wave to start while between waves.
+     */
     public int getCurrentWaveNumber() {
         if (waves.isEmpty()) {
             return 0;
@@ -122,6 +165,10 @@ public final class RuntimeLevelState {
 
     public String getLastSpawnedEnemyId() {
         return lastSpawnedEnemyId;
+    }
+
+    public boolean isWaveSpawnExhausted() {
+        return waveSpawnExhausted;
     }
 
     public List<String> consumePendingSpawnEnemyIds() {
@@ -174,6 +221,7 @@ public final class RuntimeLevelState {
 
     private void resetForNewRun() {
         status = LevelStatus.IDLE;
+        wavePhase = WavePhase.BETWEEN_WAVES;
         currentWaveIndex = 0;
         spawnedInCurrentWave = 0;
         totalSpawnedEnemies = 0;
@@ -181,6 +229,7 @@ public final class RuntimeLevelState {
         baseLives = 20;
         spawnTimerSec = 0f;
         lastSpawnedEnemyId = "";
+        waveSpawnExhausted = false;
         pendingSpawnEnemyIds.clear();
         pendingWaveStartedNumbers.clear();
         pendingWaveCompletedNumbers.clear();

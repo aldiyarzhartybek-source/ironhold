@@ -5,6 +5,7 @@ import com.ironhold.events.EnemySpawnedEvent;
 import com.ironhold.events.EventBus;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.Enemy;
+import com.ironhold.level.WavePhase;
 
 import java.util.Map;
 import java.util.Objects;
@@ -22,6 +23,9 @@ public final class SpawnSystem {
     }
 
     public void processPendingSpawns(GameRuntimeState state) {
+        if (state.getRuntimeLevelState().getWavePhase() != WavePhase.WAVE_ACTIVE) {
+            return;
+        }
         for (String enemyId : state.getRuntimeLevelState().consumePendingSpawnEnemyIds()) {
             spawnEnemy(state, enemyId);
         }
