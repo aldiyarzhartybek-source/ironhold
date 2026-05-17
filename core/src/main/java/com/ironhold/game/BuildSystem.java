@@ -52,7 +52,7 @@ public final class BuildSystem {
         if (!economy.trySpend(tower.getCost())) {
             return fail(towerId, worldX, worldY, GameFacade.BuildPlacementResult.NOT_ENOUGH_GOLD);
         }
-        state.addGoldSpent(tower.getCost());
+        state.getSessionStats().addGoldSpent(tower.getCost());
         state.getBuildSlots().set(slotIndex, slot.withTower(towerId));
         state.getPlacedTowers().add(new PlacedTower(
             slot.getSlotId(),

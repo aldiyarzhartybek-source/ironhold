@@ -1,16 +1,20 @@
 package com.ironhold.game;
 
 /**
- * Per-level session metrics based on wall-clock time (not scaled game delta).
+ * Per-level session metrics: wall-clock time, kills, and gross gold spent.
  */
 public final class LevelSessionStats {
 
     private long levelStartNanos;
     private Long levelEndNanos;
+    private int kills;
+    private int goldSpent;
 
     public void reset() {
         levelStartNanos = 0L;
         levelEndNanos = null;
+        kills = 0;
+        goldSpent = 0;
     }
 
     public void markStarted() {
@@ -22,6 +26,27 @@ public final class LevelSessionStats {
         if (levelEndNanos == null && levelStartNanos > 0L) {
             levelEndNanos = System.nanoTime();
         }
+    }
+
+    public void recordKill() {
+        kills++;
+    }
+
+    /**
+     * Gross gold spent on builds/upgrades; never reduced on sell.
+     */
+    public void addGoldSpent(int amount) {
+        if (amount > 0) {
+            goldSpent += amount;
+        }
+    }
+
+    public int getKills() {
+        return kills;
+    }
+
+    public int getGoldSpent() {
+        return goldSpent;
     }
 
     public float getElapsedSec() {

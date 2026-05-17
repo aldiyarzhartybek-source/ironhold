@@ -273,7 +273,7 @@ public final class CombatRuntimeSystem {
         economy.addGold(reward);
         state.addGoldEarned(reward);
         state.setLastAwardedGold(reward);
-        state.incrementTotalKilledEnemies();
+        state.getSessionStats().recordKill();
         eventBus.publish(new EnemyKilledEvent(
             enemy.getRuntimeId(),
             enemy.getEnemyId(),
