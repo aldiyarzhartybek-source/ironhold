@@ -44,9 +44,10 @@ public final class StageHud {
         font.draw(batch, "Lives: " + level.getBaseLives(), LEFT_X, topY);
         font.draw(batch, "Wave: " + level.getCurrentWaveNumber() + "/" + level.getTotalWaves(), screenWidth * CENTER_X_FACTOR - 80f, topY);
         font.draw(batch, "Gold: " + view.getGold(), screenWidth - RIGHT_MARGIN, topY);
+        font.draw(batch, "Build: " + view.getLastBuildPlacementResult(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT);
+        font.draw(batch, "Time: " + view.getElapsedLevelTimeFormatted(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT * 2f);
         font.draw(batch, "Mode: " + view.getGameMode(), LEFT_X, topY - LINE_HEIGHT);
         font.draw(batch, "Status: " + level.getStatus(), LEFT_X, topY - LINE_HEIGHT * 2f);
-        font.draw(batch, "Build: " + view.getLastBuildPlacementResult(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT);
         drawSelectedTowerTargeting(batch, view, topY - LINE_HEIGHT * 3f);
     }
 
