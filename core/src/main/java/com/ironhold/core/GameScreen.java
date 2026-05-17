@@ -8,9 +8,12 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputAdapter;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -58,7 +61,9 @@ public final class GameScreen extends ScreenAdapter {
     private final Vector3 touchWorld;
     private final StageHud hud;
     private final GameplayUiFxReactor eventUiFx;
+    private final WaveStartControls waveStartControls;
     private final UiLayer endStateUi;
+    private final InputProcessor gameWorldInput;
     private boolean endOverlayVisible;
     private LevelStatus endOverlayStatus;
 
@@ -74,7 +79,9 @@ public final class GameScreen extends ScreenAdapter {
         this.touchWorld = new Vector3();
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
+        this.waveStartControls = new WaveStartControls(game);
         this.endStateUi = new UiLayer(assetService.getSkin());
+        this.gameWorldInput = createGameWorldInput();
         this.endOverlayVisible = false;
         this.endOverlayStatus = null;
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -84,18 +91,17 @@ public final class GameScreen extends ScreenAdapter {
     public void show() {
         hideEndOverlay();
         game.startLevel();
+        bindGameplayInput();
     }
 
     @Override
     public void render(float delta) {
-        if (!endOverlayVisible) {
-            handleBuildPlacementInput();
-            handleWaveStartInput();
-            handleDebugEnemyKillInput();
-        }
         game.updateLevel(delta);
         eventUiFx.update(delta);
         GameRuntimeView view = game.getRuntimeView();
+        if (!endOverlayVisible) {
+            waveStartControls.sync(view, false);
+        }
         syncEndStateOverlay(view);
 
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
@@ -112,34 +118,58 @@ public final class GameScreen extends ScreenAdapter {
         if (endOverlayVisible) {
             endStateUi.act(delta);
             endStateUi.draw();
+        } else {
+            waveStartControls.act(delta);
+            waveStartControls.draw();
         }
     }
 
-    private void handleBuildPlacementInput() {
-        if (!Gdx.input.justTouched()) {
-            return;
-        }
-        touchWorld.set(Gdx.input.getX(), Gdx.input.getY(), 0f);
-        camera.unproject(touchWorld);
-        game.handlePrimaryAction(touchWorld.x, touchWorld.y);
+    private InputProcessor createGameWorldInput() {
+        return new InputAdapter() {
+            @Override
+            public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+                if (endOverlayVisible || button != Input.Buttons.LEFT) {
+                    return false;
+                }
+                if (waveStartControls.getUi().getStage().hit(screenX, screenY, true) != null) {
+                    return false;
+                }
+                touchWorld.set(screenX, screenY, 0f);
+                camera.unproject(touchWorld);
+                game.handlePrimaryAction(touchWorld.x, touchWorld.y);
+                return false;
+            }
+
+            @Override
+            public boolean keyDown(int keycode) {
+                if (endOverlayVisible) {
+                    return false;
+                }
+                if (keycode == Input.Keys.SPACE) {
+                    waveStartControls.tryStartNextWave();
+                    return true;
+                }
+                if (keycode == Input.Keys.K) {
+                    game.handleDebugKillAction();
+                    return true;
+                }
+                return false;
+            }
+        };
     }
 
-    private void handleWaveStartInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            game.startNextWave();
-        }
-    }
-
-    private void handleDebugEnemyKillInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
-            game.handleDebugKillAction();
-        }
+    private void bindGameplayInput() {
+        Gdx.input.setInputProcessor(new InputMultiplexer(
+            waveStartControls.getUi().getStage(),
+            gameWorldInput
+        ));
     }
 
     @Override
     public void resize(int width, int height) {
         camera.setToOrtho(false, width, height);
         hud.resize(width, height);
+        waveStartControls.resize(width, height);
         endStateUi.resize(width, height);
     }
 
@@ -148,6 +178,7 @@ public final class GameScreen extends ScreenAdapter {
         mapRenderer.dispose();
         batch.dispose();
         eventUiFx.dispose();
+        waveStartControls.dispose();
         endStateUi.dispose();
     }
 
@@ -240,7 +271,7 @@ public final class GameScreen extends ScreenAdapter {
         endOverlayStatus = null;
         endStateUi.getStage().clear();
         eventUiFx.clearTransientState();
-        Gdx.input.setInputProcessor(null);
+        bindGameplayInput();
     }
 
     private void renderWorldLayers(GameRuntimeView view) {
