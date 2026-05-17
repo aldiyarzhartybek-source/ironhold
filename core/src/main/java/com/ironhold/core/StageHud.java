@@ -2,6 +2,7 @@ package com.ironhold.core;
 
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
 
 import java.util.Objects;
@@ -43,9 +44,10 @@ public final class StageHud {
         font.draw(batch, "Lives: " + level.getBaseLives(), LEFT_X, topY);
         font.draw(batch, "Wave: " + level.getCurrentWaveNumber() + "/" + level.getTotalWaves(), screenWidth * CENTER_X_FACTOR - 80f, topY);
         font.draw(batch, "Gold: " + view.getGold(), screenWidth - RIGHT_MARGIN, topY);
-        font.draw(batch, "Status: " + level.getStatus(), LEFT_X, topY - LINE_HEIGHT);
+        font.draw(batch, "Mode: " + view.getGameMode(), LEFT_X, topY - LINE_HEIGHT);
+        font.draw(batch, "Status: " + level.getStatus(), LEFT_X, topY - LINE_HEIGHT * 2f);
         font.draw(batch, "Build: " + view.getLastBuildPlacementResult(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT);
-        drawSelectedTowerTargeting(batch, view, topY - LINE_HEIGHT * 2f);
+        drawSelectedTowerTargeting(batch, view, topY - LINE_HEIGHT * 3f);
     }
 
     private void drawSelectedTowerTargeting(SpriteBatch batch, GameRuntimeView view, float y) {
@@ -62,7 +64,7 @@ public final class StageHud {
     }
 
     private void drawDebugHud(SpriteBatch batch, GameRuntimeView view) {
-        float baseY = screenHeight - (TOP_MARGIN + LINE_HEIGHT * 3f);
+        float baseY = screenHeight - (TOP_MARGIN + LINE_HEIGHT * 4f);
         var level = view.getLevelState();
         font.draw(batch, "Spawn timer: " + String.format("%.2f", level.getSpawnTimerSec()), LEFT_X, baseY);
         font.draw(batch, "Wave spawned: " + level.getSpawnedInCurrentWave(), LEFT_X, baseY - LINE_HEIGHT);

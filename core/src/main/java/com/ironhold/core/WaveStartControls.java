@@ -4,6 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.ironhold.game.GameFacade;
+import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
 import com.ironhold.level.LevelStatus;
 import com.ironhold.ui.UiLayer;
@@ -40,7 +41,8 @@ public final class WaveStartControls {
 
     public void sync(GameRuntimeView view, boolean endOverlayVisible) {
         boolean running = view.getLevelState().getStatus() == LevelStatus.RUNNING;
-        boolean visible = running && !endOverlayVisible;
+        boolean manualWaves = game.getGameMode() != GameMode.RUSH;
+        boolean visible = running && !endOverlayVisible && manualWaves;
         startWaveButton.setVisible(visible);
         if (!visible) {
             return;
@@ -53,6 +55,9 @@ public final class WaveStartControls {
     }
 
     public void tryStartNextWave() {
+        if (game.getGameMode() == GameMode.RUSH) {
+            return;
+        }
         if (game.canStartNextWave()) {
             game.startNextWave();
         }

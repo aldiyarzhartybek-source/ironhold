@@ -41,6 +41,7 @@ public final class GameFacade {
     private final CombatRuntimeSystem combatSystem;
     private final WaveEventSystem waveEventSystem;
     private final GameRuntimeViewAssembler viewAssembler;
+    private GameMode gameMode;
     private BuildPlacementResult lastBuildPlacementResult;
 
     public enum BuildPlacementResult {
@@ -84,6 +85,7 @@ public final class GameFacade {
         this.combatSystem = new CombatRuntimeSystem(getEventBus(), this.economy);
         this.waveEventSystem = new WaveEventSystem(getEventBus());
         this.viewAssembler = new GameRuntimeViewAssembler(this.eventTracker, this.towers);
+        this.gameMode = GameMode.CLASSIC;
         this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
     }
 
@@ -152,7 +154,7 @@ public final class GameFacade {
     }
 
     public GameRuntimeView getRuntimeView() {
-        return viewAssembler.assemble(runtimeState, economy.getGold(), lastBuildPlacementResult);
+        return viewAssembler.assemble(runtimeState, economy.getGold(), lastBuildPlacementResult, gameMode);
     }
 
     public void dispose() {
@@ -204,10 +206,26 @@ public final class GameFacade {
         return combatSystem.debugDefeatFirstEnemy(runtimeState);
     }
 
+    public GameMode getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(GameMode gameMode) {
+        this.gameMode = Objects.requireNonNull(gameMode, "gameMode");
+    }
+
     public void startLevel() {
+        startLevel(gameMode);
+    }
+
+    public void startLevel(GameMode mode) {
+        this.gameMode = Objects.requireNonNull(mode, "mode");
         runtimeState.resetForNewLevel(initialBuildSlots);
         runtimeState.getRuntimeLevelState().start();
         waveEventSystem.publishPendingWaveEvents(runtimeState);
+        if (gameMode == GameMode.RUSH) {
+            maybeAutoStartNextWaveInRush();
+        }
     }
 
     public boolean canStartNextWave() {
@@ -235,8 +253,18 @@ public final class GameFacade {
         combatSystem.update(runtimeState, safeDeltaSec);
         levelState.tryCompleteActiveWave(runtimeState.getActiveEnemies().isEmpty());
         waveEventSystem.publishPendingWaveEvents(runtimeState);
+        maybeAutoStartNextWaveInRush();
         if (levelState.areAllWavesSpawned() && runtimeState.getActiveEnemies().isEmpty()) {
             levelState.markCompletedIfRunning();
+        }
+    }
+
+    private void maybeAutoStartNextWaveInRush() {
+        if (gameMode != GameMode.RUSH) {
+            return;
+        }
+        if (canStartNextWave()) {
+            startNextWave();
         }
     }
 

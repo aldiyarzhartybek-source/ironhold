@@ -38,6 +38,7 @@ public final class GameRuntimeView {
     private final List<Vector2> enemyPath;
     private final List<Tower> availableTowers;
     private final String selectedTowerId;
+    private final GameMode gameMode;
 
     public GameRuntimeView(
         RuntimeLevelState levelState,
@@ -60,7 +61,8 @@ public final class GameRuntimeView {
         int waveCompletedEvents,
         List<Vector2> enemyPath,
         List<Tower> availableTowers,
-        String selectedTowerId
+        String selectedTowerId,
+        GameMode gameMode
     ) {
         this.levelState = Objects.requireNonNull(levelState, "levelState");
         this.buildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
@@ -83,6 +85,11 @@ public final class GameRuntimeView {
         this.enemyPath = List.copyOf(Objects.requireNonNull(enemyPath, "enemyPath"));
         this.availableTowers = List.copyOf(Objects.requireNonNull(availableTowers, "availableTowers"));
         this.selectedTowerId = selectedTowerId;
+        this.gameMode = Objects.requireNonNull(gameMode, "gameMode");
+    }
+
+    public GameMode getGameMode() {
+        return gameMode;
     }
 
     public RuntimeLevelState getLevelState() {

@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.ironhold.ui.UiLayer;
 import com.ironhold.game.GameFacade;
+import com.ironhold.game.GameMode;
 import com.ironhold.game.screen.ScreenId;
 
 import java.util.Objects;
@@ -57,6 +58,16 @@ public final class MenuScreen extends ScreenAdapter {
         startButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                game.setGameMode(GameMode.CLASSIC);
+                game.getScreens().goTo(ScreenId.GAME);
+            }
+        });
+
+        TextButton rushButton = new TextButton("Play Rush", ui.getSkin());
+        rushButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                game.setGameMode(GameMode.RUSH);
                 game.getScreens().goTo(ScreenId.GAME);
             }
         });
@@ -75,6 +86,7 @@ public final class MenuScreen extends ScreenAdapter {
         Label title = new Label("IronHold", ui.getSkin(), "label");
         root.add(title).padBottom(22f).row();
         root.add(startButton).row();
+        root.add(rushButton).row();
         root.add(exitButton);
         ui.getStage().addActor(root);
     }
