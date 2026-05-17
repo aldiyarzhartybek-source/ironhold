@@ -7,4 +7,5 @@ public final class WaveEntryDto {
     public String enemyId = "grunt";
     public int count = 10;
     public float spawnIntervalSec = 1.25f;
+    public boolean isBossWave = false;
 }

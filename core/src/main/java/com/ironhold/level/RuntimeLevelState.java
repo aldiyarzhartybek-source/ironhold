@@ -19,6 +19,7 @@ public final class RuntimeLevelState {
     private int escapedEnemies;
     private int baseLives;
     private GameMode sessionMode;
+    private WaveDefinition activeWaveDefinition;
     private float spawnTimerSec;
     private String lastSpawnedEnemyId;
     private boolean waveSpawnExhausted;
@@ -37,6 +38,7 @@ public final class RuntimeLevelState {
         this.escapedEnemies = 0;
         this.baseLives = 0;
         this.sessionMode = GameMode.CLASSIC;
+        this.activeWaveDefinition = null;
         this.spawnTimerSec = 0f;
         this.lastSpawnedEnemyId = "";
         this.waveSpawnExhausted = false;
@@ -69,6 +71,7 @@ public final class RuntimeLevelState {
             return false;
         }
         wavePhase = WavePhase.WAVE_ACTIVE;
+        activeWaveDefinition = waves.get(currentWaveIndex);
         spawnedInCurrentWave = 0;
         spawnTimerSec = 0f;
         waveSpawnExhausted = false;
@@ -80,23 +83,24 @@ public final class RuntimeLevelState {
         if (status != LevelStatus.RUNNING || wavePhase != WavePhase.WAVE_ACTIVE) {
             return;
         }
-        if (!hasCurrentWave()) {
+        if (activeWaveDefinition == null) {
             return;
         }
 
-        WaveDefinition currentWave = waves.get(currentWaveIndex);
+        WaveDefinition wave = activeWaveDefinition;
+        float spawnIntervalSec = wave.getSpawnIntervalSec();
         spawnTimerSec += Math.max(0f, deltaSec);
 
-        while (spawnedInCurrentWave < currentWave.getCount()
-            && spawnTimerSec >= currentWave.getSpawnIntervalSec()) {
-            spawnTimerSec -= currentWave.getSpawnIntervalSec();
+        while (spawnedInCurrentWave < wave.getCount()
+            && spawnTimerSec >= spawnIntervalSec) {
+            spawnTimerSec -= spawnIntervalSec;
             spawnedInCurrentWave++;
             totalSpawnedEnemies++;
-            lastSpawnedEnemyId = currentWave.getEnemyId();
-            pendingSpawnEnemyIds.add(currentWave.getEnemyId());
+            lastSpawnedEnemyId = wave.getEnemyId();
+            pendingSpawnEnemyIds.add(wave.getEnemyId());
         }
 
-        if (spawnedInCurrentWave >= currentWave.getCount()) {
+        if (spawnedInCurrentWave >= wave.getCount()) {
             waveSpawnExhausted = true;
         }
     }
@@ -116,6 +120,7 @@ public final class RuntimeLevelState {
         pendingWaveCompletedNumbers.add(completedWaveNumber);
 
         currentWaveIndex++;
+        activeWaveDefinition = null;
         spawnedInCurrentWave = 0;
         spawnTimerSec = 0f;
         waveSpawnExhausted = false;
@@ -164,8 +169,16 @@ public final class RuntimeLevelState {
         return baseLives;
     }
 
+    public WaveDefinition getActiveWaveDefinition() {
+        return activeWaveDefinition;
+    }
+
     public float getSpawnTimerSec() {
         return spawnTimerSec;
+    }
+
+    public float getActiveSpawnIntervalSec() {
+        return activeWaveDefinition != null ? activeWaveDefinition.getSpawnIntervalSec() : 0f;
     }
 
     public String getLastSpawnedEnemyId() {
@@ -246,6 +259,7 @@ public final class RuntimeLevelState {
         totalSpawnedEnemies = 0;
         escapedEnemies = 0;
         baseLives = 0;
+        activeWaveDefinition = null;
         spawnTimerSec = 0f;
         lastSpawnedEnemyId = "";
         waveSpawnExhausted = false;

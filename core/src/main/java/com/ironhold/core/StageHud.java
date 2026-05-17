@@ -68,7 +68,8 @@ public final class StageHud {
     private void drawDebugHud(SpriteBatch batch, GameRuntimeView view) {
         float baseY = screenHeight - (TOP_MARGIN + LINE_HEIGHT * 4f);
         var level = view.getLevelState();
-        font.draw(batch, "Spawn timer: " + String.format("%.2f", level.getSpawnTimerSec()), LEFT_X, baseY);
+        font.draw(batch, "Spawn timer: " + String.format("%.2f", level.getSpawnTimerSec())
+            + " / " + String.format("%.2f", level.getActiveSpawnIntervalSec()), LEFT_X, baseY);
         font.draw(batch, "Wave spawned: " + level.getSpawnedInCurrentWave(), LEFT_X, baseY - LINE_HEIGHT);
         font.draw(batch, "Total spawned: " + level.getTotalSpawnedEnemies(), LEFT_X, baseY - LINE_HEIGHT * 2f);
         font.draw(batch, "Last enemyId: " + level.getLastSpawnedEnemyId(), LEFT_X, baseY - LINE_HEIGHT * 3f);
