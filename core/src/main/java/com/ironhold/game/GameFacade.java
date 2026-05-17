@@ -210,15 +210,33 @@ public final class GameFacade {
         waveEventSystem.publishPendingWaveEvents(runtimeState);
     }
 
+    public boolean canStartNextWave() {
+        RuntimeLevelState levelState = runtimeState.getRuntimeLevelState();
+        return runtimeState.getActiveEnemies().isEmpty() && levelState.canStartNextWave();
+    }
+
+    public boolean startNextWave() {
+        if (!canStartNextWave()) {
+            return false;
+        }
+        boolean started = runtimeState.getRuntimeLevelState().startNextWave();
+        if (started) {
+            waveEventSystem.publishPendingWaveEvents(runtimeState);
+        }
+        return started;
+    }
+
     public void updateLevel(float deltaSec) {
         float safeDeltaSec = Math.max(0f, deltaSec);
-        runtimeState.getRuntimeLevelState().update(safeDeltaSec);
+        RuntimeLevelState levelState = runtimeState.getRuntimeLevelState();
+        levelState.update(safeDeltaSec);
         waveEventSystem.publishPendingWaveEvents(runtimeState);
         spawnSystem.processPendingSpawns(runtimeState);
         combatSystem.update(runtimeState, safeDeltaSec);
-        if (runtimeState.getRuntimeLevelState().areAllWavesSpawned()
-            && runtimeState.getActiveEnemies().isEmpty()) {
-            runtimeState.getRuntimeLevelState().markCompletedIfRunning();
+        levelState.tryCompleteActiveWave(runtimeState.getActiveEnemies().isEmpty());
+        waveEventSystem.publishPendingWaveEvents(runtimeState);
+        if (levelState.areAllWavesSpawned() && runtimeState.getActiveEnemies().isEmpty()) {
+            levelState.markCompletedIfRunning();
         }
     }
 
