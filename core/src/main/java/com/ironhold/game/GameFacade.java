@@ -11,6 +11,7 @@ import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
 import com.ironhold.game.model.WaveDefinition;
 import com.ironhold.game.screen.ScreenNavigator;
+import com.ironhold.level.LevelStatus;
 import com.ironhold.level.RuntimeLevelState;
 
 import java.util.ArrayList;
@@ -221,6 +222,7 @@ public final class GameFacade {
     public void startLevel(GameMode mode) {
         this.gameMode = Objects.requireNonNull(mode, "mode");
         runtimeState.resetForNewLevel(initialBuildSlots);
+        runtimeState.getSessionStats().markStarted();
         runtimeState.getRuntimeLevelState().start(mode);
         waveEventSystem.publishPendingWaveEvents(runtimeState);
         if (gameMode == GameMode.RUSH) {
@@ -256,6 +258,21 @@ public final class GameFacade {
         maybeAutoStartNextWaveInRush();
         if (levelState.areAllWavesSpawned() && runtimeState.getActiveEnemies().isEmpty()) {
             levelState.markCompletedIfRunning();
+        }
+        syncLevelTimerEnd(levelState);
+    }
+
+    public float getElapsedLevelTimeSec() {
+        return runtimeState.getSessionStats().getElapsedSec();
+    }
+
+    public String getElapsedLevelTimeFormatted() {
+        return runtimeState.getSessionStats().getElapsedFormatted();
+    }
+
+    private void syncLevelTimerEnd(RuntimeLevelState levelState) {
+        if (levelState.getStatus() != LevelStatus.RUNNING) {
+            runtimeState.getSessionStats().markEnded();
         }
     }
 

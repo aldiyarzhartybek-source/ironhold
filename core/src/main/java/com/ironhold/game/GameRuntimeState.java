@@ -30,6 +30,7 @@ public final class GameRuntimeState {
     private int totalKilledEnemies;
     private int totalGoldSpent;
     private int totalGoldEarned;
+    private final LevelSessionStats sessionStats;
 
     public GameRuntimeState(
         RuntimeLevelState runtimeLevelState,
@@ -51,6 +52,7 @@ public final class GameRuntimeState {
         this.totalKilledEnemies = 0;
         this.totalGoldSpent = 0;
         this.totalGoldEarned = 0;
+        this.sessionStats = new LevelSessionStats();
     }
 
     public void resetForNewLevel(List<BuildSlot> initialBuildSlots) {
@@ -66,6 +68,11 @@ public final class GameRuntimeState {
         totalKilledEnemies = 0;
         totalGoldSpent = 0;
         totalGoldEarned = 0;
+        sessionStats.reset();
+    }
+
+    public LevelSessionStats getSessionStats() {
+        return sessionStats;
     }
 
     public RuntimeLevelState getRuntimeLevelState() {
