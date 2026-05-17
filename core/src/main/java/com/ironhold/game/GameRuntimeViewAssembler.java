@@ -45,7 +45,9 @@ public final class GameRuntimeViewAssembler {
             state.getEnemyPath(),
             availableTowers,
             state.getSelectedTowerId(),
-            gameMode
+            gameMode,
+            state.getSessionStats().getElapsedSec(),
+            state.getSessionStats().getElapsedFormatted()
         );
     }
 }

@@ -217,6 +217,7 @@ public final class GameScreen extends ScreenAdapter {
         Label goldSpent = new Label("Gold spent: " + view.getTotalGoldSpent(), endStateUi.getSkin(), "label");
         Label goldEarned = new Label("Gold earned: " + view.getTotalGoldEarned(), endStateUi.getSkin(), "label");
         Label towersBuilt = new Label("Towers built: " + view.getPlacedTowers().size(), endStateUi.getSkin(), "label");
+        Label timePlayed = new Label("Time: " + view.getElapsedLevelTimeFormatted(), endStateUi.getSkin(), "label");
 
         TextButton restartButton = new TextButton("Restart", endStateUi.getSkin());
         restartButton.addListener(new ChangeListener() {
@@ -257,7 +258,8 @@ public final class GameScreen extends ScreenAdapter {
         root.add(enemiesKilled).height(28f).row();
         root.add(goldSpent).height(28f).row();
         root.add(goldEarned).height(28f).row();
-        root.add(towersBuilt).height(28f).padBottom(12f).row();
+        root.add(towersBuilt).height(28f).row();
+        root.add(timePlayed).height(28f).padBottom(12f).row();
         root.add(restartButton).row();
         if (nextButton != null) {
             root.add(nextButton).row();
