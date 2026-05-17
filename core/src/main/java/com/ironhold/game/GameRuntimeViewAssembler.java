@@ -21,7 +21,8 @@ public final class GameRuntimeViewAssembler {
         GameRuntimeState state,
         int gold,
         GameFacade.BuildPlacementResult lastBuildPlacementResult,
-        GameMode gameMode
+        GameMode gameMode,
+        float timeScale
     ) {
         return new GameRuntimeView(
             state.getRuntimeLevelState(),
@@ -47,7 +48,8 @@ public final class GameRuntimeViewAssembler {
             state.getSelectedTowerId(),
             gameMode,
             state.getSessionStats().getElapsedSec(),
-            state.getSessionStats().getElapsedFormatted()
+            state.getSessionStats().getElapsedFormatted(),
+            timeScale
         );
     }
 }

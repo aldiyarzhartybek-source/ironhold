@@ -46,6 +46,7 @@ public final class StageHud {
         font.draw(batch, "Gold: " + view.getGold(), screenWidth - RIGHT_MARGIN, topY);
         font.draw(batch, "Build: " + view.getLastBuildPlacementResult(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT);
         font.draw(batch, "Time: " + view.getElapsedLevelTimeFormatted(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT * 2f);
+        font.draw(batch, "Speed: x" + formatSpeedMultiplier(view.getTimeScale()), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT * 3f);
         font.draw(batch, "Mode: " + view.getGameMode(), LEFT_X, topY - LINE_HEIGHT);
         font.draw(batch, "Status: " + level.getStatus(), LEFT_X, topY - LINE_HEIGHT * 2f);
         drawSelectedTowerTargeting(batch, view, topY - LINE_HEIGHT * 3f);
@@ -81,5 +82,12 @@ public final class StageHud {
         font.draw(batch, "Event TowerBuilt: " + view.getTowerBuiltEvents(), LEFT_X, baseY - LINE_HEIGHT * 11f);
         font.draw(batch, "Event WaveStarted: " + view.getWaveStartedEvents(), LEFT_X, baseY - LINE_HEIGHT * 12f);
         font.draw(batch, "Event WaveCompleted: " + view.getWaveCompletedEvents(), LEFT_X, baseY - LINE_HEIGHT * 13f);
+    }
+
+    private static String formatSpeedMultiplier(float timeScale) {
+        if (timeScale >= 1.95f) {
+            return "2";
+        }
+        return "1";
     }
 }

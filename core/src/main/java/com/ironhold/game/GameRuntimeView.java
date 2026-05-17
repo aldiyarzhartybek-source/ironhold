@@ -41,6 +41,7 @@ public final class GameRuntimeView {
     private final GameMode gameMode;
     private final float elapsedLevelTimeSec;
     private final String elapsedLevelTimeFormatted;
+    private final float timeScale;
 
     public GameRuntimeView(
         RuntimeLevelState levelState,
@@ -66,7 +67,8 @@ public final class GameRuntimeView {
         String selectedTowerId,
         GameMode gameMode,
         float elapsedLevelTimeSec,
-        String elapsedLevelTimeFormatted
+        String elapsedLevelTimeFormatted,
+        float timeScale
     ) {
         this.levelState = Objects.requireNonNull(levelState, "levelState");
         this.buildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
@@ -92,6 +94,11 @@ public final class GameRuntimeView {
         this.gameMode = Objects.requireNonNull(gameMode, "gameMode");
         this.elapsedLevelTimeSec = Math.max(0f, elapsedLevelTimeSec);
         this.elapsedLevelTimeFormatted = Objects.requireNonNull(elapsedLevelTimeFormatted, "elapsedLevelTimeFormatted");
+        this.timeScale = Math.max(0f, timeScale);
+    }
+
+    public float getTimeScale() {
+        return timeScale;
     }
 
     public float getElapsedLevelTimeSec() {

@@ -63,6 +63,7 @@ public final class GameScreen extends ScreenAdapter {
     private final StageHud hud;
     private final GameplayUiFxReactor eventUiFx;
     private final WaveStartControls waveStartControls;
+    private final GameSpeedControls gameSpeedControls;
     private final UiLayer endStateUi;
     private final InputProcessor gameWorldInput;
     private boolean endOverlayVisible;
@@ -81,6 +82,7 @@ public final class GameScreen extends ScreenAdapter {
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
         this.waveStartControls = new WaveStartControls(game);
+        this.gameSpeedControls = new GameSpeedControls(game);
         this.endStateUi = new UiLayer(assetService.getSkin());
         this.gameWorldInput = createGameWorldInput();
         this.endOverlayVisible = false;
@@ -102,6 +104,7 @@ public final class GameScreen extends ScreenAdapter {
         GameRuntimeView view = game.getRuntimeView();
         if (!endOverlayVisible) {
             waveStartControls.sync(view, false);
+            gameSpeedControls.sync(false);
         }
         syncEndStateOverlay(view);
 
@@ -121,7 +124,9 @@ public final class GameScreen extends ScreenAdapter {
             endStateUi.draw();
         } else {
             waveStartControls.act(delta);
+            gameSpeedControls.act(delta);
             waveStartControls.draw();
+            gameSpeedControls.draw();
         }
     }
 
@@ -132,7 +137,8 @@ public final class GameScreen extends ScreenAdapter {
                 if (endOverlayVisible || button != Input.Buttons.LEFT) {
                     return false;
                 }
-                if (waveStartControls.getUi().getStage().hit(screenX, screenY, true) != null) {
+                if (waveStartControls.getUi().getStage().hit(screenX, screenY, true) != null
+                    || gameSpeedControls.getUi().getStage().hit(screenX, screenY, true) != null) {
                     return false;
                 }
                 touchWorld.set(screenX, screenY, 0f);
@@ -150,6 +156,10 @@ public final class GameScreen extends ScreenAdapter {
                     waveStartControls.tryStartNextWave();
                     return true;
                 }
+                if (keycode == Input.Keys.T) {
+                    gameSpeedControls.toggleSpeed();
+                    return true;
+                }
                 if (keycode == Input.Keys.K) {
                     game.handleDebugKillAction();
                     return true;
@@ -162,6 +172,7 @@ public final class GameScreen extends ScreenAdapter {
     private void bindGameplayInput() {
         Gdx.input.setInputProcessor(new InputMultiplexer(
             waveStartControls.getUi().getStage(),
+            gameSpeedControls.getUi().getStage(),
             gameWorldInput
         ));
     }
@@ -171,6 +182,7 @@ public final class GameScreen extends ScreenAdapter {
         camera.setToOrtho(false, width, height);
         hud.resize(width, height);
         waveStartControls.resize(width, height);
+        gameSpeedControls.resize(width, height);
         endStateUi.resize(width, height);
     }
 
@@ -180,6 +192,7 @@ public final class GameScreen extends ScreenAdapter {
         batch.dispose();
         eventUiFx.dispose();
         waveStartControls.dispose();
+        gameSpeedControls.dispose();
         endStateUi.dispose();
     }
 
