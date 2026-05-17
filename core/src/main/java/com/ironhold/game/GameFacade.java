@@ -42,7 +42,11 @@ public final class GameFacade {
     private final CombatRuntimeSystem combatSystem;
     private final WaveEventSystem waveEventSystem;
     private final GameRuntimeViewAssembler viewAssembler;
+    private static final float TIME_SCALE_NORMAL = 1f;
+    private static final float TIME_SCALE_FAST = 2f;
+
     private GameMode gameMode;
+    private float timeScale = TIME_SCALE_NORMAL;
     private BuildPlacementResult lastBuildPlacementResult;
 
     public enum BuildPlacementResult {
@@ -155,7 +159,7 @@ public final class GameFacade {
     }
 
     public GameRuntimeView getRuntimeView() {
-        return viewAssembler.assemble(runtimeState, economy.getGold(), lastBuildPlacementResult, gameMode);
+        return viewAssembler.assemble(runtimeState, economy.getGold(), lastBuildPlacementResult, gameMode, timeScale);
     }
 
     public void dispose() {
@@ -221,6 +225,7 @@ public final class GameFacade {
 
     public void startLevel(GameMode mode) {
         this.gameMode = Objects.requireNonNull(mode, "mode");
+        timeScale = TIME_SCALE_NORMAL;
         runtimeState.resetForNewLevel(initialBuildSlots);
         runtimeState.getSessionStats().markStarted();
         runtimeState.getRuntimeLevelState().start(mode);
@@ -246,13 +251,26 @@ public final class GameFacade {
         return started;
     }
 
+    public float getTimeScale() {
+        return timeScale;
+    }
+
+    public boolean isFastTimeScale() {
+        return timeScale >= TIME_SCALE_FAST;
+    }
+
+    public void toggleTimeScale() {
+        timeScale = isFastTimeScale() ? TIME_SCALE_NORMAL : TIME_SCALE_FAST;
+    }
+
     public void updateLevel(float deltaSec) {
         float safeDeltaSec = Math.max(0f, deltaSec);
+        float scaledDeltaSec = safeDeltaSec * timeScale;
         RuntimeLevelState levelState = runtimeState.getRuntimeLevelState();
-        levelState.update(safeDeltaSec);
+        levelState.update(scaledDeltaSec);
         waveEventSystem.publishPendingWaveEvents(runtimeState);
         spawnSystem.processPendingSpawns(runtimeState);
-        combatSystem.update(runtimeState, safeDeltaSec);
+        combatSystem.update(runtimeState, scaledDeltaSec);
         levelState.tryCompleteActiveWave(runtimeState.getActiveEnemies().isEmpty());
         waveEventSystem.publishPendingWaveEvents(runtimeState);
         maybeAutoStartNextWaveInRush();
