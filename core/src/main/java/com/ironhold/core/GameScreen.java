@@ -21,6 +21,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.ironhold.game.GameFacade;
+import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.ActiveProjectile;
@@ -145,7 +146,7 @@ public final class GameScreen extends ScreenAdapter {
                 if (endOverlayVisible) {
                     return false;
                 }
-                if (keycode == Input.Keys.SPACE) {
+                if (keycode == Input.Keys.SPACE && game.getGameMode() != GameMode.RUSH) {
                     waveStartControls.tryStartNextWave();
                     return true;
                 }
