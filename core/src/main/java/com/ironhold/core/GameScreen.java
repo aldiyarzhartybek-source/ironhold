@@ -4,13 +4,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.InputProcessor;
@@ -30,18 +28,12 @@ import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.level.LevelStatus;
+import com.ironhold.ui.GameTheme;
 import com.ironhold.ui.UiLayer;
 
 import java.util.Objects;
 
 public final class GameScreen extends ScreenAdapter {
-    private static final float ROAD_WIDTH = 42f;
-    private static final float ROAD_MARKER_STEP = 24f;
-    private static final float ENEMY_SIZE = 20f;
-    private static final float ENEMY_HP_BAR_WIDTH = 20f;
-    private static final float ENEMY_HP_BAR_HEIGHT = 3f;
-    private static final float ENEMY_PROGRESS_BAR_WIDTH = 16f;
-    private static final float ENEMY_PROGRESS_BAR_HEIGHT = 2f;
 
     private enum RenderLayer {
         GROUND,
@@ -110,8 +102,7 @@ public final class GameScreen extends ScreenAdapter {
         }
         syncEndStateOverlay(view);
 
-        Gdx.gl.glClearColor(0.08f, 0.08f, 0.12f, 1f);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        GameTheme.clearBackground();
 
         camera.update();
         mapRenderer.setView(camera);
@@ -287,7 +278,7 @@ public final class GameScreen extends ScreenAdapter {
         for (RenderLayer layer : RenderLayer.values()) {
             renderLayer(layer, view);
         }
-        batch.setColor(Color.WHITE);
+        batch.setColor(GameTheme.TINT_WHITE);
     }
 
     private void renderLayer(RenderLayer layer, GameRuntimeView view) {
@@ -320,19 +311,20 @@ public final class GameScreen extends ScreenAdapter {
 
     private void drawBuildSlots(GameRuntimeView view) {
         for (BuildSlot slot : view.getBuildSlots()) {
-            float slotSize = slot.isOccupied() ? 28f : 20f;
-            batch.setColor(slot.isOccupied() ? 0.32f : 0.24f, slot.isOccupied() ? 0.7f : 0.5f, 0.3f, 0.95f);
+            float slotSize = slot.isOccupied() ? GameTheme.Draw.SLOT_OCCUPIED_SIZE : GameTheme.Draw.SLOT_FREE_SIZE;
+            batch.setColor(slot.isOccupied() ? GameTheme.SLOT_OCCUPIED : GameTheme.SLOT_FREE);
             batch.draw(testTexture, slot.getX() - slotSize / 2f, slot.getY() - slotSize / 2f, slotSize, slotSize);
-            batch.setColor(0.06f, 0.09f, 0.12f, 0.95f);
-            batch.draw(testTexture, slot.getX() - 7f, slot.getY() - 7f, 14f, 14f);
+            batch.setColor(GameTheme.SLOT_CORE);
+            float core = GameTheme.Draw.SLOT_CORE_SIZE;
+            batch.draw(testTexture, slot.getX() - core / 2f, slot.getY() - core / 2f, core, core);
         }
     }
 
     private void drawEnemies(GameRuntimeView view) {
         int pathSegments = Math.max(1, view.getEnemyPath().size() - 1);
         for (ActiveEnemy enemy : view.getActiveEnemies()) {
-            batch.setColor(0.88f, 0.3f, 0.3f, 1f);
-            batch.draw(testTexture, enemy.getX(), enemy.getY(), ENEMY_SIZE, ENEMY_SIZE);
+            batch.setColor(GameTheme.ENEMY_ACCENT);
+            batch.draw(testTexture, enemy.getX(), enemy.getY(), GameTheme.Draw.ENEMY_SIZE, GameTheme.Draw.ENEMY_SIZE);
             drawEnemyHpBar(enemy);
             drawEnemyProgressBar(enemy, pathSegments);
         }
@@ -340,43 +332,44 @@ public final class GameScreen extends ScreenAdapter {
 
     private void drawEnemyHpBar(ActiveEnemy enemy) {
         float barX = enemy.getX();
-        float barY = enemy.getY() + ENEMY_SIZE + 3f;
+        float barY = enemy.getY() + GameTheme.Draw.ENEMY_SIZE + 3f;
         float hpRatio = enemy.getMaxHp() <= 0
             ? 0f
             : Math.max(0f, Math.min(1f, enemy.getCurrentHp() / (float) enemy.getMaxHp()));
 
-        batch.setColor(0.1f, 0.12f, 0.12f, 0.9f);
-        batch.draw(testTexture, barX, barY, ENEMY_HP_BAR_WIDTH, ENEMY_HP_BAR_HEIGHT);
-        batch.setColor(0.18f, 0.85f, 0.34f, 0.95f);
-        batch.draw(testTexture, barX, barY, ENEMY_HP_BAR_WIDTH * hpRatio, ENEMY_HP_BAR_HEIGHT);
+        batch.setColor(GameTheme.HP_BAR_BACKGROUND);
+        batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_HP_BAR_WIDTH, GameTheme.Draw.ENEMY_HP_BAR_HEIGHT);
+        batch.setColor(GameTheme.HP_BAR_FILL);
+        batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_HP_BAR_WIDTH * hpRatio, GameTheme.Draw.ENEMY_HP_BAR_HEIGHT);
     }
 
     private void drawEnemyProgressBar(ActiveEnemy enemy, int pathSegments) {
         float barX = enemy.getX() + 2f;
-        float barY = enemy.getY() + ENEMY_SIZE + 8f;
+        float barY = enemy.getY() + GameTheme.Draw.ENEMY_SIZE + 8f;
         float progressRatio = Math.max(0f, Math.min(1f, enemy.getTargetWaypointIndex() / (float) pathSegments));
 
-        batch.setColor(0.1f, 0.12f, 0.12f, 0.75f);
-        batch.draw(testTexture, barX, barY, ENEMY_PROGRESS_BAR_WIDTH, ENEMY_PROGRESS_BAR_HEIGHT);
-        batch.setColor(0.95f, 0.8f, 0.24f, 0.95f);
-        batch.draw(testTexture, barX, barY, ENEMY_PROGRESS_BAR_WIDTH * progressRatio, ENEMY_PROGRESS_BAR_HEIGHT);
+        batch.setColor(GameTheme.PROGRESS_BAR_BACKGROUND);
+        batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_PROGRESS_BAR_WIDTH, GameTheme.Draw.ENEMY_PROGRESS_BAR_HEIGHT);
+        batch.setColor(GameTheme.PROGRESS_BAR_FILL);
+        batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_PROGRESS_BAR_WIDTH * progressRatio, GameTheme.Draw.ENEMY_PROGRESS_BAR_HEIGHT);
     }
 
     private void drawTowers(GameRuntimeView view) {
         for (PlacedTower tower : view.getPlacedTowers()) {
-            batch.setColor(0.42f, 0.53f, 0.95f, 1f);
-            batch.draw(testTexture, tower.getX() - 12f, tower.getY() - 12f, 24f, 24f);
+            batch.setColor(GameTheme.TOWER_BLUE);
+            float size = GameTheme.Draw.TOWER_SIZE;
+            batch.draw(testTexture, tower.getX() - size / 2f, tower.getY() - size / 2f, size, size);
         }
     }
 
     private void drawFxLayer(GameRuntimeView view) {
         for (ActiveProjectile projectile : view.getActiveProjectiles()) {
-            batch.setColor(1f, 0.95f, 0.55f, 1f);
+            batch.setColor(GameTheme.PROJECTILE);
             batch.draw(testTexture, projectile.getX() - 3f, projectile.getY() - 3f, 6f, 6f);
         }
         for (HitEffect hitEffect : view.getHitEffects()) {
             float alpha = Math.min(1f, Math.max(0f, hitEffect.getTtlSec() / 0.14f));
-            batch.setColor(1f, 0.7f, 0.2f, alpha);
+            batch.setColor(GameTheme.multiplyAlpha(GameTheme.HIT_EFFECT, alpha));
             batch.draw(testTexture, hitEffect.getX() - 10f, hitEffect.getY() - 10f, 20f, 20f);
         }
         drawFloatingRewardTexts();
@@ -386,11 +379,11 @@ public final class GameScreen extends ScreenAdapter {
         float width = camera.viewportWidth;
         float height = camera.viewportHeight;
 
-        batch.setColor(0.07f, 0.11f, 0.12f, 1f);
+        batch.setColor(GameTheme.BACKDROP_BASE);
         batch.draw(testTexture, 0f, 0f, width, height);
-        batch.setColor(0.11f, 0.14f, 0.1f, 1f);
+        batch.setColor(GameTheme.BACKDROP_TOP_GLOW);
         batch.draw(testTexture, 0f, 0f, width, height * 0.22f);
-        batch.setColor(0.09f, 0.13f, 0.09f, 0.35f);
+        batch.setColor(GameTheme.BACKDROP_FRAME);
         batch.draw(testTexture, 16f, 16f, width - 32f, height - 32f);
     }
 
@@ -414,19 +407,18 @@ public final class GameScreen extends ScreenAdapter {
             return;
         }
 
-        // thick route body
-        batch.setColor(0.35f, 0.29f, 0.18f, 0.96f);
+        float roadWidth = GameTheme.Draw.ROAD_WIDTH;
+        batch.setColor(GameTheme.PATH_BODY);
         if (Math.abs(dx) >= Math.abs(dy)) {
-            float y = Math.min(from.y, to.y) - ROAD_WIDTH / 2f;
-            batch.draw(testTexture, Math.min(from.x, to.x), y, Math.abs(dx), ROAD_WIDTH);
+            float y = Math.min(from.y, to.y) - roadWidth / 2f;
+            batch.draw(testTexture, Math.min(from.x, to.x), y, Math.abs(dx), roadWidth);
         } else {
-            float x = Math.min(from.x, to.x) - ROAD_WIDTH / 2f;
-            batch.draw(testTexture, x, Math.min(from.y, to.y), ROAD_WIDTH, Math.abs(dy));
+            float x = Math.min(from.x, to.x) - roadWidth / 2f;
+            batch.draw(testTexture, x, Math.min(from.y, to.y), roadWidth, Math.abs(dy));
         }
 
-        // lane highlights
-        batch.setColor(0.56f, 0.47f, 0.28f, 0.4f);
-        int markerCount = Math.max(1, (int) (length / ROAD_MARKER_STEP));
+        batch.setColor(GameTheme.PATH_LANE);
+        int markerCount = Math.max(1, (int) (length / GameTheme.Draw.ROAD_MARKER_STEP));
         for (int m = 0; m <= markerCount; m++) {
             float t = (float) m / markerCount;
             float x = from.x + dx * t;
@@ -443,16 +435,18 @@ public final class GameScreen extends ScreenAdapter {
         Vector2 spawn = path.get(0);
         Vector2 base = path.get(path.size() - 1);
 
-        batch.setColor(0.96f, 0.82f, 0.34f, 0.95f);
+        batch.setColor(GameTheme.SPAWN_MARKER);
         batch.draw(testTexture, spawn.x - 12f, spawn.y - 12f, 24f, 24f);
-        batch.setColor(0.72f, 0.18f, 0.18f, 0.95f);
+        batch.setColor(GameTheme.BASE_MARKER);
         batch.draw(testTexture, base.x - 14f, base.y - 14f, 28f, 28f);
     }
 
     private void drawFloatingRewardTexts() {
         for (GameplayUiFxReactor.FloatingTextView floating : eventUiFx.getFloatingTextViews()) {
-            batch.setColor(0.14f, 0.96f, 0.45f, floating.getAlpha());
+            batch.setColor(GameTheme.multiplyAlpha(GameTheme.REWARD_FLOAT, floating.getAlpha()));
+            font.setColor(GameTheme.multiplyAlpha(GameTheme.REWARD_FLOAT, floating.getAlpha()));
             font.draw(batch, floating.getText(), floating.getX(), floating.getY());
+            font.setColor(GameTheme.UI_TEXT);
         }
     }
 
@@ -461,10 +455,11 @@ public final class GameScreen extends ScreenAdapter {
         if (banner != null) {
             float width = camera.viewportWidth;
             float topY = camera.viewportHeight - 90f;
-            batch.setColor(0.08f, 0.12f, 0.18f, 0.65f * banner.getAlpha());
+            batch.setColor(GameTheme.multiplyAlpha(GameTheme.BANNER_BACKGROUND, banner.getAlpha()));
             batch.draw(testTexture, width * 0.5f - 150f, topY - 26f, 300f, 34f);
-            batch.setColor(0.95f, 0.95f, 1f, banner.getAlpha());
+            font.setColor(GameTheme.multiplyAlpha(GameTheme.BANNER_TEXT, banner.getAlpha()));
             font.draw(batch, banner.getText(), width * 0.5f - 78f, topY - 3f);
+            font.setColor(GameTheme.UI_TEXT);
         }
 
         GameplayUiFxReactor.ToastView toast = eventUiFx.getToastView();
@@ -472,15 +467,15 @@ public final class GameScreen extends ScreenAdapter {
             float width = camera.viewportWidth;
             float y = camera.viewportHeight - 18f;
             if (toast.isError()) {
-                batch.setColor(0.26f, 0.08f, 0.08f, 0.72f * toast.getAlpha());
-                font.setColor(1f, 0.76f, 0.76f, toast.getAlpha());
+                batch.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_ERROR_BACKGROUND, toast.getAlpha()));
+                font.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_ERROR_TEXT, toast.getAlpha()));
             } else {
-                batch.setColor(0.08f, 0.2f, 0.1f, 0.72f * toast.getAlpha());
-                font.setColor(0.82f, 1f, 0.82f, toast.getAlpha());
+                batch.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_SUCCESS_BACKGROUND, toast.getAlpha()));
+                font.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_SUCCESS_TEXT, toast.getAlpha()));
             }
             batch.draw(testTexture, width - 340f, y - 22f, 320f, 26f);
             font.draw(batch, toast.getText(), width - 332f, y - 4f);
-            font.setColor(Color.WHITE);
+            font.setColor(GameTheme.UI_TEXT);
         }
     }
 }

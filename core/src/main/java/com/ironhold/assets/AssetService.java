@@ -94,7 +94,7 @@ public final class AssetService {
 
     private static Texture createTestTexture() {
         Pixmap pixmap = new Pixmap(2, 2, Pixmap.Format.RGBA8888);
-        pixmap.setColor(0.9f, 0.9f, 0.95f, 1f);
+        pixmap.setColor(GameTheme.TEXTURE_NEUTRAL);
         pixmap.fill();
         Texture texture = new Texture(pixmap);
         pixmap.dispose();

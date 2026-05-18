@@ -3,6 +3,7 @@ package com.ironhold.core;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.ironhold.game.GameRuntimeView;
+import com.ironhold.ui.GameTheme;
 
 import java.util.Objects;
 
@@ -40,6 +41,7 @@ public final class StageHud {
     }
 
     private void drawMainHud(SpriteBatch batch, GameRuntimeView view, boolean debugMode) {
+        font.setColor(GameTheme.UI_TEXT);
         float topY = screenHeight - TOP_MARGIN;
         var level = view.getLevelState();
         font.draw(batch, "Lives: " + level.getBaseLives(), LEFT_X, topY);
@@ -73,6 +75,7 @@ public final class StageHud {
     }
 
     private void drawDebugHud(SpriteBatch batch, GameRuntimeView view) {
+        font.setColor(GameTheme.UI_TEXT_MUTED);
         float baseY = screenHeight - (TOP_MARGIN + LINE_HEIGHT * 4f);
         var level = view.getLevelState();
         font.draw(batch, "Spawn timer: " + String.format("%.2f", level.getSpawnTimerSec())
