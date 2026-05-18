@@ -191,9 +191,9 @@ public final class LevelSelectScreen extends ScreenAdapter {
             if (!unlocked) {
                 status.setText("Locked");
             } else if (completed) {
-                status.setText("Completed");
+                status.setText("Completed · " + game.getLevelStartingGold(level) + "g");
             } else {
-                status.setText(" ");
+                status.setText("Start: " + game.getLevelStartingGold(level) + " gold");
             }
         }
     }

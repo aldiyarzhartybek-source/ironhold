@@ -119,6 +119,44 @@ public final class GameConfig {
         return economy;
     }
 
+    public WavesConfigDto loadWavesConfig(String internalPath) {
+        Objects.requireNonNull(internalPath, "internalPath");
+        Json json = new Json();
+        WavesConfigDto waves = readOrDefault(json, internalPath, WavesConfigDto.class, GameConfig::defaultWaves);
+        if (waves.waves == null) {
+            waves.waves = new ArrayList<>();
+        }
+        ensureNonEmpty(waves.waves, defaultWaves().waves);
+        sanitizeWaves(waves, enemies);
+        return waves;
+    }
+
+    public int clampStartingGold(int value, int levelNumber) {
+        EconomyConfigDto fallback = defaultEconomy();
+        return clampInt(
+            value,
+            MIN_STARTING_GOLD,
+            MAX_STARTING_GOLD,
+            fallback.startingGold,
+            "level.startingGold(level=" + levelNumber + ")"
+        );
+    }
+
+    static <T> T readInternalJson(Json json, String internalPath, Class<T> type) {
+        Objects.requireNonNull(json, "json");
+        Objects.requireNonNull(internalPath, "internalPath");
+        Objects.requireNonNull(type, "type");
+        FileHandle file = Gdx.files.internal(internalPath);
+        if (!file.exists()) {
+            return null;
+        }
+        try {
+            return json.fromJson(type, file);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private static <T> T readOrDefault(Json json, String internalPath, Class<T> type, Supplier<T> defaultSupplier) {
         Objects.requireNonNull(json, "json");
         Objects.requireNonNull(internalPath, "internalPath");

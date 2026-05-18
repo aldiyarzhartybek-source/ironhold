@@ -1,0 +1,7 @@
+{
+  "levelId": "level_4",
+  "levelNumber": 4,
+  "map": "maps/level0.tmx",
+  "startingGold": 195,
+  "wavesConfig": "config/waves.json"
+}
