@@ -6,5 +6,6 @@ package com.ironhold.game.screen;
 public enum ScreenId {
     LOADING,
     MENU,
+    LEVEL_SELECT,
     GAME
 }

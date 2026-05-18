@@ -8,17 +8,22 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.ironhold.game.GameFacade;
 import com.ironhold.game.screen.ScreenId;
+import com.ironhold.save.ProgressService;
 import com.ironhold.ui.GameTheme;
 import com.ironhold.ui.UiLayer;
 
 import java.util.Objects;
 
-public final class MenuScreen extends ScreenAdapter {
+/**
+ * Level and mode selection (stub for Stage 4 task 3; navigation shell for task 2).
+ */
+public final class LevelSelectScreen extends ScreenAdapter {
 
     private final GameFacade game;
     private final UiLayer ui;
+    private Label progressLabel;
 
-    public MenuScreen(GameFacade game) {
+    public LevelSelectScreen(GameFacade game) {
         this.game = Objects.requireNonNull(game, "game");
         this.ui = new UiLayer(game.getAssets().getSkin());
         initLayout();
@@ -26,6 +31,7 @@ public final class MenuScreen extends ScreenAdapter {
 
     @Override
     public void show() {
+        refreshProgressLabel();
         Gdx.input.setInputProcessor(ui.getStage());
     }
 
@@ -52,30 +58,28 @@ public final class MenuScreen extends ScreenAdapter {
     }
 
     private void initLayout() {
-        Label title = new Label("IronHold", ui.getSkin(), "title");
+        Label title = new Label("Level Select", ui.getSkin(), "title");
+        progressLabel = new Label("", ui.getSkin(), "label-muted");
 
-        TextButton playButton = new TextButton("Play", ui.getSkin());
-        playButton.addListener(new ChangeListener() {
+        TextButton backButton = new TextButton("Back", ui.getSkin());
+        backButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                game.getScreens().goTo(ScreenId.LEVEL_SELECT);
-            }
-        });
-
-        TextButton quitButton = new TextButton("Quit", ui.getSkin());
-        quitButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                Gdx.app.exit();
+                game.getScreens().goTo(ScreenId.MENU);
             }
         });
 
         Table root = new Table();
         root.setFillParent(true);
-        root.defaults().width(240f).height(52f).pad(10f);
-        root.add(title).padBottom(32f).row();
-        root.add(playButton).row();
-        root.add(quitButton);
+        root.defaults().pad(10f);
+        root.add(title).padBottom(12f).row();
+        root.add(progressLabel).padBottom(28f).row();
+        root.add(backButton).width(240f).height(52f);
         ui.getStage().addActor(root);
+    }
+
+    private void refreshProgressLabel() {
+        int highest = game.getHighestUnlockedLevel();
+        progressLabel.setText("Unlocked levels: 1-" + highest + " of " + ProgressService.MAX_LEVELS);
     }
 }
