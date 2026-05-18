@@ -196,4 +196,138 @@ public final class GameRuntimeView {
     public String getSelectedTowerId() {
         return selectedTowerId;
     }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Builder for immutable {@link GameRuntimeView} snapshots (GoF Builder).
+     */
+    public static final class Builder {
+
+        private RuntimeLevelState levelState;
+        private List<BuildSlot> buildSlots;
+        private List<PlacedTower> placedTowers;
+        private List<ActiveEnemy> activeEnemies;
+        private List<ActiveProjectile> activeProjectiles;
+        private List<HitEffect> hitEffects;
+        private int gold;
+        private GameFacade.BuildPlacementResult lastBuildPlacementResult;
+        private int totalKilledEnemies;
+        private int lastAwardedGold;
+        private int totalGoldSpent;
+        private int totalGoldEarned;
+        private int wavesReached;
+        private int enemySpawnedEvents;
+        private int enemyKilledEvents;
+        private int towerBuiltEvents;
+        private int waveStartedEvents;
+        private int waveCompletedEvents;
+        private List<Vector2> enemyPath;
+        private List<Tower> availableTowers;
+        private String selectedTowerId;
+        private GameMode gameMode;
+        private float elapsedLevelTimeSec;
+        private String elapsedLevelTimeFormatted;
+        private float timeScale;
+
+        private Builder() {
+        }
+
+        public Builder fromRuntime(
+            GameRuntimeState state,
+            GameplayEventTracker eventTracker,
+            List<Tower> availableTowers
+        ) {
+            Objects.requireNonNull(state, "state");
+            Objects.requireNonNull(eventTracker, "eventTracker");
+            Objects.requireNonNull(availableTowers, "availableTowers");
+
+            levelState = state.getRuntimeLevelState();
+            buildSlots = state.getBuildSlots();
+            placedTowers = state.getPlacedTowers();
+            activeEnemies = state.getActiveEnemies();
+            activeProjectiles = state.getActiveProjectiles();
+            hitEffects = state.getHitEffects();
+            totalKilledEnemies = state.getSessionStats().getKills();
+            lastAwardedGold = state.getLastAwardedGold();
+            totalGoldSpent = state.getSessionStats().getGoldSpent();
+            totalGoldEarned = state.getTotalGoldEarned();
+            wavesReached = levelState.getCurrentWaveNumber();
+            enemySpawnedEvents = eventTracker.getEnemySpawnedEvents();
+            enemyKilledEvents = eventTracker.getEnemyKilledEvents();
+            towerBuiltEvents = eventTracker.getTowerBuiltEvents();
+            waveStartedEvents = eventTracker.getWaveStartedEvents();
+            waveCompletedEvents = eventTracker.getWaveCompletedEvents();
+            enemyPath = state.getEnemyPath();
+            this.availableTowers = availableTowers;
+            selectedTowerId = state.getSelectedTowerId();
+            elapsedLevelTimeSec = state.getSessionStats().getElapsedSec();
+            elapsedLevelTimeFormatted = state.getSessionStats().getElapsedFormatted();
+            return this;
+        }
+
+        public Builder gold(int gold) {
+            this.gold = gold;
+            return this;
+        }
+
+        public Builder lastBuildPlacementResult(GameFacade.BuildPlacementResult lastBuildPlacementResult) {
+            this.lastBuildPlacementResult = lastBuildPlacementResult;
+            return this;
+        }
+
+        public Builder gameMode(GameMode gameMode) {
+            this.gameMode = gameMode;
+            return this;
+        }
+
+        public Builder timeScale(float timeScale) {
+            this.timeScale = timeScale;
+            return this;
+        }
+
+        public GameRuntimeView build() {
+            Objects.requireNonNull(levelState, "levelState");
+            Objects.requireNonNull(buildSlots, "buildSlots");
+            Objects.requireNonNull(placedTowers, "placedTowers");
+            Objects.requireNonNull(activeEnemies, "activeEnemies");
+            Objects.requireNonNull(activeProjectiles, "activeProjectiles");
+            Objects.requireNonNull(hitEffects, "hitEffects");
+            Objects.requireNonNull(lastBuildPlacementResult, "lastBuildPlacementResult");
+            Objects.requireNonNull(enemyPath, "enemyPath");
+            Objects.requireNonNull(availableTowers, "availableTowers");
+            Objects.requireNonNull(gameMode, "gameMode");
+            Objects.requireNonNull(elapsedLevelTimeFormatted, "elapsedLevelTimeFormatted");
+
+            return new GameRuntimeView(
+                levelState,
+                buildSlots,
+                placedTowers,
+                activeEnemies,
+                activeProjectiles,
+                hitEffects,
+                gold,
+                lastBuildPlacementResult,
+                totalKilledEnemies,
+                lastAwardedGold,
+                totalGoldSpent,
+                totalGoldEarned,
+                wavesReached,
+                enemySpawnedEvents,
+                enemyKilledEvents,
+                towerBuiltEvents,
+                waveStartedEvents,
+                waveCompletedEvents,
+                enemyPath,
+                availableTowers,
+                selectedTowerId,
+                gameMode,
+                elapsedLevelTimeSec,
+                elapsedLevelTimeFormatted,
+                timeScale
+            );
+        }
+    }
 }
