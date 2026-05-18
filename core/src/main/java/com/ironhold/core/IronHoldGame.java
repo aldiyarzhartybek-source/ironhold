@@ -8,6 +8,7 @@ import com.ironhold.game.GameContext;
 import com.ironhold.game.GameFacade;
 import com.ironhold.game.model.GameModelMapper;
 import com.ironhold.config.GameConfig;
+import com.ironhold.config.LevelCatalog;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.game.screen.ScreenManager;
 import com.ironhold.save.LocalFileProgressRepository;
@@ -30,7 +31,8 @@ public class IronHoldGame extends Game {
         progressService.load();
         context = new GameContext(new SimpleEventBus(), progressService);
         config = GameConfig.loadDefault();
-      
+        LevelCatalog levelCatalog = LevelCatalog.load(config);
+
         assets = new AssetService();
         screens = new ScreenManager(this);
         facade = new GameFacade(
@@ -39,7 +41,7 @@ public class IronHoldGame extends Game {
             screens,
             GameModelMapper.mapEnemies(config),
             GameModelMapper.mapTowers(config),
-            GameModelMapper.mapWaves(config),
+            levelCatalog,
             GameModelMapper.defaultBuildSlots(),
             GameModelMapper.mapEconomy(config)
         );

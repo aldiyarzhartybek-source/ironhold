@@ -9,6 +9,8 @@ import com.ironhold.game.model.EconomyState;
 import com.ironhold.game.model.Enemy;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
+import com.ironhold.config.LevelCatalog;
+import com.ironhold.game.model.LevelDefinition;
 import com.ironhold.game.model.WaveDefinition;
 import com.ironhold.game.screen.ScreenNavigator;
 import com.ironhold.level.LevelStatus;
@@ -31,7 +33,7 @@ public final class GameFacade {
     private final ScreenNavigator screens;
     private final List<Enemy> enemies;
     private final List<Tower> towers;
-    private final List<WaveDefinition> waves;
+    private final LevelCatalog levelCatalog;
     private final List<BuildSlot> initialBuildSlots;
     private final EconomyState economy;
     private final Map<String, Enemy> enemiesById;
@@ -69,7 +71,7 @@ public final class GameFacade {
         ScreenNavigator screens,
         List<Enemy> enemies,
         List<Tower> towers,
-        List<WaveDefinition> waves,
+        LevelCatalog levelCatalog,
         List<BuildSlot> buildSlots,
         EconomyState economy
     ) {
@@ -79,14 +81,15 @@ public final class GameFacade {
         this.screens = Objects.requireNonNull(screens, "screens");
         this.enemies = List.copyOf(Objects.requireNonNull(enemies, "enemies"));
         this.towers = List.copyOf(Objects.requireNonNull(towers, "towers"));
-        this.waves = List.copyOf(Objects.requireNonNull(waves, "waves"));
+        this.levelCatalog = Objects.requireNonNull(levelCatalog, "levelCatalog");
         this.initialBuildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
         this.economy = Objects.requireNonNull(economy, "economy");
         this.enemiesById = indexEnemiesById(this.enemies);
         this.towersById = indexTowersById(this.towers);
         this.eventTracker = new GameplayEventTracker(getEventBus());
+        LevelDefinition initialLevel = requireLevel(1);
         this.runtimeState = new GameRuntimeState(
-            new RuntimeLevelState(this.waves),
+            new RuntimeLevelState(initialLevel.getWaves()),
             this.initialBuildSlots,
             defaultEnemyPath(),
             this.towers.isEmpty() ? null : this.towers.get(0).getId()
@@ -152,8 +155,20 @@ public final class GameFacade {
         return towers;
     }
 
+    public LevelCatalog getLevelCatalog() {
+        return levelCatalog;
+    }
+
+    public LevelDefinition getCurrentLevelDefinition() {
+        return requireLevel(currentLevelNumber);
+    }
+
+    public int getLevelStartingGold(int levelNumber) {
+        return requireLevel(levelNumber).getStartingGold();
+    }
+
     public List<WaveDefinition> getWaves() {
-        return waves;
+        return getCurrentLevelDefinition().getWaves();
     }
 
     public List<BuildSlot> getBuildSlots() {
@@ -272,13 +287,20 @@ public final class GameFacade {
     }
 
     public void startLevel(int levelNumber, GameMode mode) {
+        if (!progressService.isLevelUnlocked(levelNumber)) {
+            return;
+        }
+        LevelDefinition level = requireLevel(levelNumber);
         setCurrentLevelNumber(levelNumber);
         this.gameMode = Objects.requireNonNull(mode, "mode");
         victoryProgressRecorded = false;
         timeScale = TIME_SCALE_NORMAL;
+        economy.setGold(level.getStartingGold());
         runtimeState.resetForNewLevel(initialBuildSlots);
+        RuntimeLevelState levelState = runtimeState.getRuntimeLevelState();
+        levelState.setWaveSchedule(level.getWaves());
         runtimeState.getSessionStats().markStarted();
-        runtimeState.getRuntimeLevelState().start(mode);
+        levelState.start(mode);
         waveEventSystem.publishPendingWaveEvents(runtimeState);
         if (gameMode == GameMode.RUSH) {
             maybeAutoStartNextWaveInRush();
@@ -373,6 +395,14 @@ public final class GameFacade {
             indexed.put(tower.getId(), tower);
         }
         return indexed;
+    }
+
+    private LevelDefinition requireLevel(int levelNumber) {
+        LevelDefinition level = levelCatalog.getLevel(levelNumber);
+        if (level == null) {
+            throw new IllegalStateException("No level definition for level " + levelNumber);
+        }
+        return level;
     }
 
     private static List<Vector2> defaultEnemyPath() {

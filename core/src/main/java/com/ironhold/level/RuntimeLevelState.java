@@ -10,7 +10,7 @@ import java.util.Objects;
 
 public final class RuntimeLevelState {
 
-    private final List<WaveDefinition> waves;
+    private List<WaveDefinition> waves;
     private LevelStatus status;
     private WavePhase wavePhase;
     private int currentWaveIndex;
@@ -46,6 +46,10 @@ public final class RuntimeLevelState {
         this.pendingWaveStartedNumbers = new ArrayList<>();
         this.pendingWaveCompletedNumbers = new ArrayList<>();
         this.allWavesSpawned = false;
+    }
+
+    public void setWaveSchedule(List<WaveDefinition> waveSchedule) {
+        this.waves = List.copyOf(Objects.requireNonNull(waveSchedule, "waveSchedule"));
     }
 
     public void start(GameMode mode) {
