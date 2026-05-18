@@ -2,13 +2,12 @@ package com.ironhold.core;
 
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
 
 import java.util.Objects;
 
 /**
- * Stage HUD renderer for gameplay and debug metrics.
+ * Stage HUD: production metrics and optional debug overlay.
  */
 public final class StageHud {
 
@@ -33,21 +32,29 @@ public final class StageHud {
         this.screenHeight = screenHeight;
     }
 
-    public void render(SpriteBatch batch, GameRuntimeView view) {
-        drawMainHud(batch, view);
-        drawDebugHud(batch, view);
+    public void render(SpriteBatch batch, GameRuntimeView view, boolean debugMode) {
+        drawMainHud(batch, view, debugMode);
+        if (debugMode) {
+            drawDebugHud(batch, view);
+        }
     }
 
-    private void drawMainHud(SpriteBatch batch, GameRuntimeView view) {
+    private void drawMainHud(SpriteBatch batch, GameRuntimeView view, boolean debugMode) {
         float topY = screenHeight - TOP_MARGIN;
         var level = view.getLevelState();
         font.draw(batch, "Lives: " + level.getBaseLives(), LEFT_X, topY);
-        font.draw(batch, "Wave: " + level.getCurrentWaveNumber() + "/" + level.getTotalWaves(), screenWidth * CENTER_X_FACTOR - 80f, topY);
+        font.draw(batch, "Wave: " + level.getCurrentWaveNumber() + "/" + level.getTotalWaves(),
+            screenWidth * CENTER_X_FACTOR - 80f, topY);
         font.draw(batch, "Gold: " + view.getGold(), screenWidth - RIGHT_MARGIN, topY);
-        font.draw(batch, "Build: " + view.getLastBuildPlacementResult(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT);
-        font.draw(batch, "Time: " + view.getElapsedLevelTimeFormatted(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT * 2f);
-        font.draw(batch, "Speed: x" + formatSpeedMultiplier(view.getTimeScale()), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT * 3f);
+        font.draw(batch, "Time: " + view.getElapsedLevelTimeFormatted(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT);
+        font.draw(batch, "Speed: x" + formatSpeedMultiplier(view.getTimeScale()),
+            screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT * 2f);
         font.draw(batch, "Mode: " + view.getGameMode(), LEFT_X, topY - LINE_HEIGHT);
+
+        if (!debugMode) {
+            return;
+        }
+        font.draw(batch, "Build: " + view.getLastBuildPlacementResult(), screenWidth - RIGHT_MARGIN, topY - LINE_HEIGHT * 3f);
         font.draw(batch, "Status: " + level.getStatus(), LEFT_X, topY - LINE_HEIGHT * 2f);
         drawSelectedTowerTargeting(batch, view, topY - LINE_HEIGHT * 3f);
     }

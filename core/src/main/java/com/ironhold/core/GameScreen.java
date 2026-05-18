@@ -53,6 +53,7 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     private final GameFacade game;
+    private final boolean debugMode;
     private final OrthographicCamera camera;
     private final SpriteBatch batch;
     private final BitmapFont font;
@@ -71,6 +72,7 @@ public final class GameScreen extends ScreenAdapter {
 
     public GameScreen(GameFacade game) {
         this.game = Objects.requireNonNull(game, "game");
+        this.debugMode = game.isDebugMode();
         var assetService = game.getAssets();
         this.camera = new OrthographicCamera();
         this.batch = new SpriteBatch();
@@ -160,7 +162,7 @@ public final class GameScreen extends ScreenAdapter {
                     gameSpeedControls.toggleSpeed();
                     return true;
                 }
-                if (keycode == Input.Keys.K) {
+                if (debugMode && keycode == Input.Keys.K) {
                     game.handleDebugKillAction();
                     return true;
                 }
@@ -239,7 +241,7 @@ public final class GameScreen extends ScreenAdapter {
                 @Override
                 public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
                     hideEndOverlay();
-                    game.getScreens().goTo(ScreenId.MENU);
+                    game.getScreens().goTo(ScreenId.LEVEL_SELECT);
                 }
             });
             root.defaults().height(52f);
@@ -259,7 +261,7 @@ public final class GameScreen extends ScreenAdapter {
                 @Override
                 public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
                     hideEndOverlay();
-                    game.getScreens().goTo(ScreenId.MENU);
+                    game.getScreens().goTo(ScreenId.LEVEL_SELECT);
                 }
             });
 
@@ -308,7 +310,7 @@ public final class GameScreen extends ScreenAdapter {
                 drawFxLayer(view);
                 break;
             case UI:
-                hud.render(batch, view);
+                hud.render(batch, view, debugMode);
                 drawEventOverlays();
                 break;
             default:

@@ -29,8 +29,8 @@ public class IronHoldGame extends Game {
     public void create() {
         ProgressService progressService = new ProgressService(new LocalFileProgressRepository());
         progressService.load();
-        context = new GameContext(new SimpleEventBus(), progressService);
         config = GameConfig.loadDefault();
+        context = new GameContext(new SimpleEventBus(), progressService, config.isDebugMode());
         LevelCatalog levelCatalog = LevelCatalog.load(config);
 
         assets = new AssetService();
