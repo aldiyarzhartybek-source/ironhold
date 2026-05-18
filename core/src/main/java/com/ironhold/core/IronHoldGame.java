@@ -45,6 +45,7 @@ public class IronHoldGame extends Game {
         );
         screens.register(ScreenId.LOADING, () -> new LoadingScreen(facade));
         screens.register(ScreenId.MENU, () -> new MenuScreen(facade));
+        screens.register(ScreenId.LEVEL_SELECT, () -> new LevelSelectScreen(facade));
         screens.register(ScreenId.GAME, () -> new GameScreen(facade));
         facade.getEventBus().publish(new GameStartedEvent());
         screens.goTo(ScreenId.LOADING);
