@@ -13,6 +13,7 @@ import com.ironhold.game.model.WaveDefinition;
 import com.ironhold.game.screen.ScreenNavigator;
 import com.ironhold.level.LevelStatus;
 import com.ironhold.level.RuntimeLevelState;
+import com.ironhold.save.ProgressService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +46,11 @@ public final class GameFacade {
     private static final float TIME_SCALE_NORMAL = 1f;
     private static final float TIME_SCALE_FAST = 2f;
 
+    private final ProgressService progressService;
+
     private GameMode gameMode;
+    private int currentLevelNumber = 1;
+    private boolean victoryProgressRecorded;
     private float timeScale = TIME_SCALE_NORMAL;
     private BuildPlacementResult lastBuildPlacementResult;
 
@@ -69,6 +74,7 @@ public final class GameFacade {
         EconomyState economy
     ) {
         this.context = Objects.requireNonNull(context, "context");
+        this.progressService = context.getProgressService();
         this.assets = Objects.requireNonNull(assets, "assets");
         this.screens = Objects.requireNonNull(screens, "screens");
         this.enemies = List.copyOf(Objects.requireNonNull(enemies, "enemies"));
@@ -101,6 +107,29 @@ public final class GameFacade {
 
     public GameContext getContext() {
         return context;
+    }
+
+    public ProgressService getProgressService() {
+        return progressService;
+    }
+
+    public int getCurrentLevelNumber() {
+        return currentLevelNumber;
+    }
+
+    public void setCurrentLevelNumber(int levelNumber) {
+        if (levelNumber < 1 || levelNumber > ProgressService.MAX_LEVELS) {
+            return;
+        }
+        this.currentLevelNumber = levelNumber;
+    }
+
+    public int getHighestUnlockedLevel() {
+        return progressService.getHighestUnlockedLevel();
+    }
+
+    public boolean isLevelUnlocked(int levelNumber) {
+        return progressService.isLevelUnlocked(levelNumber);
     }
 
     public EventBus getEventBus() {
@@ -235,11 +264,17 @@ public final class GameFacade {
     }
 
     public void startLevel() {
-        startLevel(gameMode);
+        startLevel(currentLevelNumber, gameMode);
     }
 
     public void startLevel(GameMode mode) {
+        startLevel(currentLevelNumber, mode);
+    }
+
+    public void startLevel(int levelNumber, GameMode mode) {
+        setCurrentLevelNumber(levelNumber);
         this.gameMode = Objects.requireNonNull(mode, "mode");
+        victoryProgressRecorded = false;
         timeScale = TIME_SCALE_NORMAL;
         runtimeState.resetForNewLevel(initialBuildSlots);
         runtimeState.getSessionStats().markStarted();
@@ -289,7 +324,16 @@ public final class GameFacade {
         if (levelState.areAllWavesSpawned() && state.getActiveEnemies().isEmpty()) {
             levelState.markCompletedIfRunning();
         }
+        recordVictoryProgressIfNeeded(levelState);
         syncLevelTimerEnd(levelState);
+    }
+
+    private void recordVictoryProgressIfNeeded(RuntimeLevelState levelState) {
+        if (victoryProgressRecorded || levelState.getStatus() != LevelStatus.COMPLETED) {
+            return;
+        }
+        progressService.recordLevelCompleted(currentLevelNumber);
+        victoryProgressRecorded = true;
     }
 
     public float getElapsedLevelTimeSec() {

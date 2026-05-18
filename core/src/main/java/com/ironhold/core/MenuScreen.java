@@ -58,6 +58,7 @@ public final class MenuScreen extends ScreenAdapter {
         startButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                game.setCurrentLevelNumber(1);
                 game.setGameMode(GameMode.CLASSIC);
                 game.getScreens().goTo(ScreenId.GAME);
             }
@@ -67,6 +68,7 @@ public final class MenuScreen extends ScreenAdapter {
         rushButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                game.setCurrentLevelNumber(1);
                 game.setGameMode(GameMode.RUSH);
                 game.getScreens().goTo(ScreenId.GAME);
             }
@@ -76,6 +78,7 @@ public final class MenuScreen extends ScreenAdapter {
         oneLifeButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                game.setCurrentLevelNumber(1);
                 game.setGameMode(GameMode.ONE_LIFE);
                 game.getScreens().goTo(ScreenId.GAME);
             }
@@ -93,7 +96,14 @@ public final class MenuScreen extends ScreenAdapter {
         root.setFillParent(true);
         root.defaults().width(220f).height(52f).pad(10f);
         Label title = new Label("IronHold", ui.getSkin(), "label");
-        root.add(title).padBottom(22f).row();
+        int highestUnlocked = game.getHighestUnlockedLevel();
+        Label progressLabel = new Label(
+            "Unlocked levels: 1-" + highestUnlocked,
+            ui.getSkin(),
+            "label"
+        );
+        root.add(title).padBottom(8f).row();
+        root.add(progressLabel).padBottom(22f).row();
         root.add(startButton).row();
         root.add(rushButton).row();
         root.add(oneLifeButton).row();
