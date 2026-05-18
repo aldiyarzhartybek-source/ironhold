@@ -42,7 +42,6 @@ public final class GameFacade {
     private final CombatRuntimeSystem combatSystem;
     private final WaveEventSystem waveEventSystem;
     private final LevelUpdateTemplate levelUpdateTemplate;
-    private final GameRuntimeViewAssembler viewAssembler;
     private static final float TIME_SCALE_NORMAL = 1f;
     private static final float TIME_SCALE_FAST = 2f;
 
@@ -96,7 +95,6 @@ public final class GameFacade {
             this.combatSystem,
             this::handlePostCombatFrame
         );
-        this.viewAssembler = new GameRuntimeViewAssembler(this.eventTracker, this.towers);
         this.gameMode = GameMode.CLASSIC;
         this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
     }
@@ -170,7 +168,13 @@ public final class GameFacade {
     }
 
     public GameRuntimeView getRuntimeView() {
-        return viewAssembler.assemble(runtimeState, economy.getGold(), lastBuildPlacementResult, gameMode, timeScale);
+        return GameRuntimeView.builder()
+            .fromRuntime(runtimeState, eventTracker, towers)
+            .gold(economy.getGold())
+            .lastBuildPlacementResult(lastBuildPlacementResult)
+            .gameMode(gameMode)
+            .timeScale(timeScale)
+            .build();
     }
 
     public void dispose() {
