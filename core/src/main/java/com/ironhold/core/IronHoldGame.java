@@ -10,6 +10,8 @@ import com.ironhold.game.model.GameModelMapper;
 import com.ironhold.config.GameConfig;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.game.screen.ScreenManager;
+import com.ironhold.save.LocalFileProgressRepository;
+import com.ironhold.save.ProgressService;
 
 /**
  * Точка входа игры в модуле core: жизненный цикл LibGDX и делегирование экранов {@link ScreenManager}.
@@ -24,7 +26,9 @@ public class IronHoldGame extends Game {
 
     @Override
     public void create() {
-        context = new GameContext(new SimpleEventBus());
+        ProgressService progressService = new ProgressService(new LocalFileProgressRepository());
+        progressService.load();
+        context = new GameContext(new SimpleEventBus(), progressService);
         config = GameConfig.loadDefault();
       
         assets = new AssetService();
