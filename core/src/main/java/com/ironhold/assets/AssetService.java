@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.ironhold.ui.GameTheme;
 
 import java.util.Objects;
 
@@ -107,18 +108,29 @@ public final class AssetService {
 
         Label.LabelStyle labelStyle = new Label.LabelStyle();
         labelStyle.font = font;
-        labelStyle.fontColor = Color.WHITE;
+        labelStyle.fontColor = GameTheme.UI_TEXT;
         skin.add("label", labelStyle);
 
-        Drawable up = skin.newDrawable("button-base", new Color(0.2f, 0.2f, 0.28f, 1f));
-        Drawable over = skin.newDrawable("button-base", new Color(0.28f, 0.28f, 0.38f, 1f));
-        Drawable down = skin.newDrawable("button-base", new Color(0.16f, 0.16f, 0.22f, 1f));
+        Label.LabelStyle titleStyle = new Label.LabelStyle();
+        titleStyle.font = font;
+        titleStyle.fontColor = GameTheme.PATH_TEAL;
+        skin.add("title", titleStyle);
+
+        Label.LabelStyle mutedLabelStyle = new Label.LabelStyle();
+        mutedLabelStyle.font = font;
+        mutedLabelStyle.fontColor = GameTheme.UI_TEXT_MUTED;
+        skin.add("label-muted", mutedLabelStyle);
+
+        Drawable up = skin.newDrawable("button-base", GameTheme.BUTTON_UP);
+        Drawable over = skin.newDrawable("button-base", GameTheme.BUTTON_OVER);
+        Drawable down = skin.newDrawable("button-base", GameTheme.BUTTON_DOWN);
 
         TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
         buttonStyle.up = up;
         buttonStyle.over = over;
         buttonStyle.down = down;
         buttonStyle.font = font;
+        buttonStyle.fontColor = GameTheme.UI_TEXT;
         skin.add("default", buttonStyle);
 
         return skin;
