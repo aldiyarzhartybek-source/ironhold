@@ -3,6 +3,7 @@ package com.ironhold.config;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.utils.Json;
+import com.ironhold.config.dto.AppConfigDto;
 import com.ironhold.config.dto.EconomyConfigDto;
 import com.ironhold.config.dto.EnemiesConfigDto;
 import com.ironhold.config.dto.EnemyConfigDto;
@@ -29,6 +30,7 @@ public final class GameConfig {
     private static final String TOWERS_PATH = "config/towers.json";
     private static final String WAVES_PATH = "config/waves.json";
     private static final String ECONOMY_PATH = "config/economy.json";
+    private static final String APP_PATH = "config/app.json";
 
     private static final int MIN_ENEMY_HP = 1;
     private static final int MAX_ENEMY_HP = 10_000;
@@ -60,17 +62,20 @@ public final class GameConfig {
     private final TowersConfigDto towers;
     private final WavesConfigDto waves;
     private final EconomyConfigDto economy;
+    private final boolean debugMode;
 
     private GameConfig(
         EnemiesConfigDto enemies,
         TowersConfigDto towers,
         WavesConfigDto waves,
-        EconomyConfigDto economy
+        EconomyConfigDto economy,
+        boolean debugMode
     ) {
         this.enemies = Objects.requireNonNull(enemies, "enemies");
         this.towers = Objects.requireNonNull(towers, "towers");
         this.waves = Objects.requireNonNull(waves, "waves");
         this.economy = Objects.requireNonNull(economy, "economy");
+        this.debugMode = debugMode;
     }
 
     public static GameConfig loadDefault() {
@@ -80,6 +85,7 @@ public final class GameConfig {
         TowersConfigDto towers = readOrDefault(json, TOWERS_PATH, TowersConfigDto.class, GameConfig::defaultTowers);
         WavesConfigDto waves = readOrDefault(json, WAVES_PATH, WavesConfigDto.class, GameConfig::defaultWaves);
         EconomyConfigDto economy = readOrDefault(json, ECONOMY_PATH, EconomyConfigDto.class, GameConfig::defaultEconomy);
+        AppConfigDto app = readOrDefault(json, APP_PATH, AppConfigDto.class, GameConfig::defaultApp);
 
         if (enemies.enemies == null) {
             enemies.enemies = new ArrayList<>();
@@ -100,7 +106,11 @@ public final class GameConfig {
         sanitizeWaves(waves, enemies);
         sanitizeEconomy(economy);
 
-        return new GameConfig(enemies, towers, waves, economy);
+        return new GameConfig(enemies, towers, waves, economy, app.debugMode);
+    }
+
+    public boolean isDebugMode() {
+        return debugMode;
     }
 
     public EnemiesConfigDto getEnemies() {
@@ -367,5 +377,9 @@ public final class GameConfig {
         dto.killRewardMultiplier = 1.0f;
         dto.buildRefundRate = 0.5f;
         return dto;
+    }
+
+    private static AppConfigDto defaultApp() {
+        return new AppConfigDto();
     }
 }

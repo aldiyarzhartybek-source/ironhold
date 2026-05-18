@@ -116,6 +116,10 @@ public final class GameFacade {
         return progressService;
     }
 
+    public boolean isDebugMode() {
+        return context.isDebugMode();
+    }
+
     public int getCurrentLevelNumber() {
         return currentLevelNumber;
     }
