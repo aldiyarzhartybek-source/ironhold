@@ -9,6 +9,9 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.List;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
+import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
@@ -132,6 +135,26 @@ public final class AssetService {
         buttonStyle.font = font;
         buttonStyle.fontColor = GameTheme.UI_TEXT;
         skin.add("default", buttonStyle);
+
+        ScrollPane.ScrollPaneStyle scrollStyle = new ScrollPane.ScrollPaneStyle();
+        scrollStyle.background = up;
+        scrollStyle.vScroll = down;
+        scrollStyle.vScrollKnob = over;
+
+        List.ListStyle listStyle = new List.ListStyle();
+        listStyle.font = font;
+        listStyle.fontColorSelected = GameTheme.UI_TEXT;
+        listStyle.fontColorUnselected = GameTheme.UI_TEXT_MUTED;
+        listStyle.selection = down;
+        listStyle.background = up;
+
+        SelectBox.SelectBoxStyle selectBoxStyle = new SelectBox.SelectBoxStyle();
+        selectBoxStyle.font = font;
+        selectBoxStyle.fontColor = GameTheme.UI_TEXT;
+        selectBoxStyle.background = up;
+        selectBoxStyle.scrollStyle = scrollStyle;
+        selectBoxStyle.listStyle = listStyle;
+        skin.add("default", selectBoxStyle);
 
         return skin;
     }
