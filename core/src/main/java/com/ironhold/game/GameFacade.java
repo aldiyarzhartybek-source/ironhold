@@ -41,6 +41,7 @@ public final class GameFacade {
     private final SpawnSystem spawnSystem;
     private final CombatRuntimeSystem combatSystem;
     private final WaveEventSystem waveEventSystem;
+    private final LevelUpdateTemplate levelUpdateTemplate;
     private final GameRuntimeViewAssembler viewAssembler;
     private static final float TIME_SCALE_NORMAL = 1f;
     private static final float TIME_SCALE_FAST = 2f;
@@ -89,6 +90,12 @@ public final class GameFacade {
         this.spawnSystem = new SpawnSystem(getEventBus(), this.enemiesById);
         this.combatSystem = new CombatRuntimeSystem(getEventBus(), this.economy);
         this.waveEventSystem = new WaveEventSystem(getEventBus());
+        this.levelUpdateTemplate = new DefaultLevelUpdateTemplate(
+            this.waveEventSystem,
+            this.spawnSystem,
+            this.combatSystem,
+            this::handlePostCombatFrame
+        );
         this.viewAssembler = new GameRuntimeViewAssembler(this.eventTracker, this.towers);
         this.gameMode = GameMode.CLASSIC;
         this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
@@ -270,15 +277,12 @@ public final class GameFacade {
     public void updateLevel(float deltaSec) {
         float safeDeltaSec = Math.max(0f, deltaSec);
         float scaledDeltaSec = safeDeltaSec * timeScale;
-        RuntimeLevelState levelState = runtimeState.getRuntimeLevelState();
-        levelState.update(scaledDeltaSec);
-        waveEventSystem.publishPendingWaveEvents(runtimeState);
-        spawnSystem.processPendingSpawns(runtimeState);
-        combatSystem.update(runtimeState, scaledDeltaSec);
-        levelState.tryCompleteActiveWave(runtimeState.getActiveEnemies().isEmpty());
-        waveEventSystem.publishPendingWaveEvents(runtimeState);
+        levelUpdateTemplate.updateFrame(new LevelUpdateFrameContext(runtimeState, scaledDeltaSec));
+    }
+
+    private void handlePostCombatFrame(GameRuntimeState state, RuntimeLevelState levelState) {
         maybeAutoStartNextWaveInRush();
-        if (levelState.areAllWavesSpawned() && runtimeState.getActiveEnemies().isEmpty()) {
+        if (levelState.areAllWavesSpawned() && state.getActiveEnemies().isEmpty()) {
             levelState.markCompletedIfRunning();
         }
         syncLevelTimerEnd(levelState);
