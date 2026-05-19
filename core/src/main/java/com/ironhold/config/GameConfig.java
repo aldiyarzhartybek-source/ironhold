@@ -11,6 +11,7 @@ import com.ironhold.config.dto.TowerConfigDto;
 import com.ironhold.config.dto.TowersConfigDto;
 import com.ironhold.config.dto.WaveEntryDto;
 import com.ironhold.config.dto.WavesConfigDto;
+import com.ironhold.game.model.EnemyVisualShape;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -57,6 +58,8 @@ public final class GameConfig {
     private static final int MAX_STARTING_GOLD = 2_000;
     private static final float MIN_KILL_REWARD_MULTIPLIER = 0.25f;
     private static final float MAX_KILL_REWARD_MULTIPLIER = 3.0f;
+    private static final float MIN_ENEMY_VISUAL_SCALE = 0.5f;
+    private static final float MAX_ENEMY_VISUAL_SCALE = 2.5f;
 
     private final EnemiesConfigDto enemies;
     private final TowersConfigDto towers;
@@ -208,6 +211,44 @@ public final class GameConfig {
             enemy.hp = clampInt(enemy.hp, MIN_ENEMY_HP, MAX_ENEMY_HP, fallback.hp, "enemy.hp(" + id + ")");
             enemy.speed = clampFloat(enemy.speed, MIN_ENEMY_SPEED, MAX_ENEMY_SPEED, fallback.speed, "enemy.speed(" + id + ")");
             enemy.reward = clampInt(enemy.reward, MIN_ENEMY_REWARD, MAX_ENEMY_REWARD, fallback.reward, "enemy.reward(" + id + ")");
+            enemy.visualShape = sanitizeEnemyVisualShape(enemy.visualShape, fallback.visualShape, id);
+            enemy.fillColor = sanitizeEnemyFillColor(enemy.fillColor, fallback.fillColor, id);
+            enemy.visualScale = clampFloat(
+                enemy.visualScale,
+                MIN_ENEMY_VISUAL_SCALE,
+                MAX_ENEMY_VISUAL_SCALE,
+                fallback.visualScale,
+                "enemy.visualScale(" + id + ")"
+            );
+        }
+    }
+
+    private static String sanitizeEnemyVisualShape(String raw, String fallbackRaw, String enemyId) {
+        if (raw == null || raw.isBlank()) {
+            return fallbackRaw != null && !fallbackRaw.isBlank() ? fallbackRaw.trim().toUpperCase(Locale.ROOT) : "SQUARE";
+        }
+        String trimmed = raw.trim().toUpperCase(Locale.ROOT);
+        for (EnemyVisualShape shape : EnemyVisualShape.values()) {
+            if (shape.name().equals(trimmed)) {
+                return shape.name();
+            }
+        }
+        String fallback = fallbackRaw != null && !fallbackRaw.isBlank() ? fallbackRaw.trim().toUpperCase(Locale.ROOT) : "SQUARE";
+        warn("enemy.visualShape(" + enemyId + ") invalid '" + raw + "', fallback to '" + fallback + "'");
+        return fallback;
+    }
+
+    private static String sanitizeEnemyFillColor(String raw, String fallbackRaw, String enemyId) {
+        if (raw == null || raw.isBlank()) {
+            return fallbackRaw != null && !fallbackRaw.isBlank() ? fallbackRaw.trim() : "F77F2A";
+        }
+        try {
+            com.badlogic.gdx.graphics.Color.valueOf(raw.trim());
+            return raw.trim();
+        } catch (Exception ignored) {
+            String fallback = fallbackRaw != null && !fallbackRaw.isBlank() ? fallbackRaw.trim() : "F77F2A";
+            warn("enemy.fillColor(" + enemyId + ") invalid '" + raw + "', fallback to '" + fallback + "'");
+            return fallback;
         }
     }
 
@@ -344,6 +385,9 @@ public final class GameConfig {
         grunt.hp = 100;
         grunt.speed = 1.0f;
         grunt.reward = 10;
+        grunt.visualShape = "SQUARE";
+        grunt.fillColor = "F77F2A";
+        grunt.visualScale = 1f;
         dto.enemies.add(grunt);
         return dto;
     }

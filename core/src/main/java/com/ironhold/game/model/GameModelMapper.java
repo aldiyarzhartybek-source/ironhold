@@ -1,8 +1,10 @@
 package com.ironhold.game.model;
 
+import com.badlogic.gdx.graphics.Color;
 import com.ironhold.config.GameConfig;
 import com.ironhold.config.dto.EnemyConfigDto;
 import com.ironhold.config.dto.TowerConfigDto;
+import com.ironhold.ui.GameTheme;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +22,16 @@ public final class GameModelMapper {
         Objects.requireNonNull(config, "config");
         List<Enemy> result = new ArrayList<>();
         for (EnemyConfigDto enemy : config.getEnemies().enemies) {
-            result.add(new Enemy(enemy.id, enemy.hp, enemy.hp, enemy.speed, enemy.reward));
+            result.add(new Enemy(
+                enemy.id,
+                enemy.hp,
+                enemy.hp,
+                enemy.speed,
+                enemy.reward,
+                EnemyVisualShape.fromConfig(enemy.visualShape),
+                parseFillColor(enemy.fillColor),
+                enemy.visualScale
+            ));
         }
         return result;
     }
@@ -53,6 +64,17 @@ public final class GameModelMapper {
             config.getEconomy().killRewardMultiplier,
             config.getEconomy().buildRefundRate
         );
+    }
+
+    private static Color parseFillColor(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return new Color(GameTheme.ENEMY_ACCENT);
+        }
+        try {
+            return Color.valueOf(raw.trim());
+        } catch (Exception ignored) {
+            return new Color(GameTheme.ENEMY_ACCENT);
+        }
     }
 
     public static List<BuildSlot> defaultBuildSlots() {
