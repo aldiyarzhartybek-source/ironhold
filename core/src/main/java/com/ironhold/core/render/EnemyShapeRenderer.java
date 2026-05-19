@@ -43,9 +43,17 @@ public final class EnemyShapeRenderer {
 
         for (ActiveEnemy enemy : enemies) {
             Enemy template = resolveTemplate(enemy.getEnemyId());
-            float radius = template.getVisualRadius();
+            float radius   = template.getVisualRadius();
             float rotation = facingAngle(path, enemy);
-            drawShape(template.getVisualShape(), enemy.getX(), enemy.getY(), radius, rotation, template.getFillColor());
+
+            // 1. White outline — slightly larger shape drawn first
+            float outlineRadius = radius + GameTheme.Draw.ENEMY_OUTLINE_THICK;
+            drawShape(template.getVisualShape(), enemy.getX(), enemy.getY(),
+                outlineRadius, rotation, GameTheme.ENEMY_OUTLINE);
+
+            // 2. Normal colour fill on top
+            drawShape(template.getVisualShape(), enemy.getX(), enemy.getY(),
+                radius, rotation, template.getFillColor());
         }
 
         shapes.end();

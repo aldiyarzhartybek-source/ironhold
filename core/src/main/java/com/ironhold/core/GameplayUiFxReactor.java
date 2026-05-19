@@ -22,13 +22,15 @@ public final class GameplayUiFxReactor {
     private static final float FLOATING_TEXT_TTL_SEC = 0.9f;
     private static final float FLOATING_TEXT_RISE_PER_SEC = 28f;
     private static final float BANNER_TTL_SEC = 1.8f;
-    private static final float TOAST_TTL_SEC = 1.5f;
+    private static final float TOAST_TTL_SEC = 2.0f;
+    /** Maximum toasts visible simultaneously — they stack vertically. */
+    private static final int   MAX_ACTIVE_TOASTS = 3;
 
     private final List<EventSubscription> subscriptions = new ArrayList<>();
     private final List<FloatingTextFx> floatingTexts = new ArrayList<>();
     private final Deque<ToastUi> pendingToasts = new ArrayDeque<>();
+    private final List<ToastUi>  activeToasts  = new ArrayList<>(MAX_ACTIVE_TOASTS);
     private BannerUi activeBanner;
-    private ToastUi activeToast;
 
     public GameplayUiFxReactor(EventBus eventBus) {
         Objects.requireNonNull(eventBus, "eventBus");
@@ -63,18 +65,24 @@ public final class GameplayUiFxReactor {
         return new BannerView(activeBanner.text, alpha);
     }
 
-    public ToastView getToastView() {
-        if (activeToast == null) {
-            return null;
+    /**
+     * Returns up to {@value MAX_ACTIVE_TOASTS} visible toasts, newest first.
+     * Each view carries a {@code slotIndex} so the renderer can stack them vertically.
+     */
+    public List<ToastView> getToastViews() {
+        List<ToastView> views = new ArrayList<>(activeToasts.size());
+        for (int i = 0; i < activeToasts.size(); i++) {
+            ToastUi t = activeToasts.get(i);
+            float alpha = Math.max(0f, Math.min(1f, t.ttlSec / TOAST_TTL_SEC));
+            views.add(new ToastView(t.text, t.error, alpha, i));
         }
-        float alpha = Math.max(0f, Math.min(1f, activeToast.ttlSec / TOAST_TTL_SEC));
-        return new ToastView(activeToast.text, activeToast.error, alpha);
+        return views;
     }
 
     public void clearTransientState() {
         floatingTexts.clear();
         pendingToasts.clear();
-        activeToast = null;
+        activeToasts.clear();
         activeBanner = null;
     }
 
@@ -159,18 +167,17 @@ public final class GameplayUiFxReactor {
     }
 
     private void updateToast(float dt) {
-        if (activeToast == null && !pendingToasts.isEmpty()) {
-            activeToast = pendingToasts.removeFirst();
-        }
-        if (activeToast == null || dt <= 0f) {
-            return;
-        }
-        activeToast.ttlSec -= dt;
-        if (activeToast.ttlSec <= 0f) {
-            activeToast = null;
-            if (!pendingToasts.isEmpty()) {
-                activeToast = pendingToasts.removeFirst();
-            }
+        if (dt <= 0f) return;
+
+        // Age active toasts; remove expired ones
+        activeToasts.removeIf(t -> {
+            t.ttlSec -= dt;
+            return t.ttlSec <= 0f;
+        });
+
+        // Fill vacated slots from the pending queue
+        while (activeToasts.size() < MAX_ACTIVE_TOASTS && !pendingToasts.isEmpty()) {
+            activeToasts.add(pendingToasts.removeFirst());
         }
     }
 
@@ -259,26 +266,22 @@ public final class GameplayUiFxReactor {
     }
 
     public static final class ToastView {
-        private final String text;
+        private final String  text;
         private final boolean error;
-        private final float alpha;
+        private final float   alpha;
+        /** Vertical slot (0 = topmost, 1 = below, …). Use to offset Y when rendering. */
+        private final int     slotIndex;
 
-        private ToastView(String text, boolean error, float alpha) {
-            this.text = text;
-            this.error = error;
-            this.alpha = alpha;
+        private ToastView(String text, boolean error, float alpha, int slotIndex) {
+            this.text      = text;
+            this.error     = error;
+            this.alpha     = alpha;
+            this.slotIndex = slotIndex;
         }
 
-        public String getText() {
-            return text;
-        }
-
-        public boolean isError() {
-            return error;
-        }
-
-        public float getAlpha() {
-            return alpha;
-        }
+        public String getText()     { return text; }
+        public boolean isError()    { return error; }
+        public float getAlpha()     { return alpha; }
+        public int getSlotIndex()   { return slotIndex; }
     }
 }
