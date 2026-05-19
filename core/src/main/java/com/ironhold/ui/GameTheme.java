@@ -33,6 +33,8 @@ public final class GameTheme {
     public static final Color PATH_BODY = hex("1F8A80");
     /** Lane markers / path shimmer on top of {@link #PATH_BODY}. */
     public static final Color PATH_LANE = withAlpha(PATH_TEAL, 0.45f);
+    /** Wider path underlay for depth. */
+    public static final Color PATH_OUTER = withAlpha(PATH_TEAL, 0.28f);
     public static final Color BACKDROP_BASE = withAlpha(BACKGROUND, 1f);
     public static final Color BACKDROP_TOP_GLOW = hex("1C2420");
     public static final Color BACKDROP_FRAME = withAlpha(PATH_TEAL, 0.12f);
@@ -94,6 +96,9 @@ public final class GameTheme {
      */
     public static final class Draw {
         public static final float ROAD_WIDTH = 42f;
+        public static final float PATH_OUTER_HALF_WIDTH = 24f;
+        public static final float PATH_INNER_HALF_WIDTH = 18f;
+        public static final int CIRCLE_SEGMENTS = 24;
         public static final float ROAD_MARKER_STEP = 24f;
         public static final float ENEMY_SIZE = 20f;
         public static final float ENEMY_HP_BAR_WIDTH = 20f;
@@ -101,9 +106,12 @@ public final class GameTheme {
         public static final float ENEMY_PROGRESS_BAR_WIDTH = 16f;
         public static final float ENEMY_PROGRESS_BAR_HEIGHT = 2f;
         public static final float TOWER_SIZE = 24f;
-        public static final float SLOT_FREE_SIZE = 20f;
-        public static final float SLOT_OCCUPIED_SIZE = 28f;
-        public static final float SLOT_CORE_SIZE = 14f;
+        /** Visual ring radius; click radius remains 28f in {@code BuildSystem}. */
+        public static final float SLOT_RING_RADIUS = 22f;
+        public static final float SLOT_INNER_RADIUS = 12f;
+        public static final float SLOT_OCCUPIED_RING_RADIUS = 24f;
+        public static final float SPAWN_MARKER_RADIUS = 16f;
+        public static final float BASE_MARKER_RADIUS = 18f;
 
         private Draw() {
         }
