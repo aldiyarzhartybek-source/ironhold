@@ -22,14 +22,13 @@ public final class CombatRuntimeSystem {
     private static final float MIN_RUNTIME_ENEMY_SPEED = 0.1f;
     private static final float PROJECTILE_SPEED = 320f;
     private static final float PROJECTILE_HIT_RADIUS = 12f;
-    private static final float HIT_EFFECT_TTL_SEC = 0.14f;
 
     private final EventBus eventBus;
     private final EconomyState economy;
 
     public CombatRuntimeSystem(EventBus eventBus, EconomyState economy) {
         this.eventBus = Objects.requireNonNull(eventBus, "eventBus");
-        this.economy = Objects.requireNonNull(economy, "economy");
+        this.economy  = Objects.requireNonNull(economy, "economy");
     }
 
     public boolean debugDefeatFirstEnemy(GameRuntimeState state) {
@@ -113,7 +112,8 @@ public final class CombatRuntimeSystem {
             float step = projectile.getSpeed() * deltaSec;
             if (distance <= PROJECTILE_HIT_RADIUS || step >= distance) {
                 target.setCurrentHp(target.getCurrentHp() - projectile.getDamage());
-                state.getHitEffects().add(new HitEffect(target.getX() + 10f, target.getY() + 10f, HIT_EFFECT_TTL_SEC));
+                state.getHitEffects().add(new HitEffect(
+                    target.getX(), target.getY(), 0.14f));
                 finishedProjectiles.add(projectile);
                 if (target.getCurrentHp() <= 0 && !killedEnemies.contains(target)) {
                     killedEnemies.add(target);
