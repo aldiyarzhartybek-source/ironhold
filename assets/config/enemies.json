@@ -4,13 +4,28 @@
       "id": "grunt",
       "hp": 100,
       "speed": 1.0,
-      "reward": 10
+      "reward": 10,
+      "visualShape": "SQUARE",
+      "fillColor": "F77F2A",
+      "visualScale": 1.0
     },
     {
       "id": "runner",
       "hp": 65,
       "speed": 1.45,
-      "reward": 12
+      "reward": 12,
+      "visualShape": "TRIANGLE",
+      "fillColor": "FF9F45",
+      "visualScale": 1.0
+    },
+    {
+      "id": "boss",
+      "hp": 450,
+      "speed": 0.75,
+      "reward": 80,
+      "visualShape": "PENTAGON",
+      "fillColor": "E84855",
+      "visualScale": 1.65
     }
   ]
 }

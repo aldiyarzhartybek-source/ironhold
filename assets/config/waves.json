@@ -13,9 +13,9 @@
       "isBossWave": false
     },
     {
-      "enemyId": "grunt",
-      "count": 6,
-      "spawnIntervalSec": 0.7,
+      "enemyId": "boss",
+      "count": 1,
+      "spawnIntervalSec": 1.2,
       "isBossWave": true
     }
   ]
