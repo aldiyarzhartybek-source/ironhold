@@ -2,6 +2,7 @@ package com.ironhold.core;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -18,14 +19,16 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.ironhold.core.fx.FxBloomPipeline;
 import com.ironhold.game.GameFacade;
 import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.ActiveProjectile;
-import com.ironhold.game.model.HitEffect;
 import com.ironhold.core.render.EnemyShapeRenderer;
 import com.ironhold.core.render.GameplayMapRenderer;
+import com.ironhold.core.render.ProjectileRenderer;
+import com.ironhold.core.render.TowerShapeRenderer;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.level.LevelStatus;
@@ -36,14 +39,6 @@ import java.util.Objects;
 
 public final class GameScreen extends ScreenAdapter {
 
-    private enum RenderLayer {
-        GROUND,
-        PROPS,
-        ENEMIES,
-        TOWERS,
-        FX,
-        UI
-    }
 
     private final GameFacade game;
     private final boolean debugMode;
@@ -56,6 +51,9 @@ public final class GameScreen extends ScreenAdapter {
     private final Vector3 touchWorld;
     private final GameplayMapRenderer mapVisuals;
     private final EnemyShapeRenderer enemyShapes;
+    private final TowerShapeRenderer towerShapes;
+    private final ProjectileRenderer projectileRenderer;
+    private final FxBloomPipeline bloomPipeline;
     private final StageHud hud;
     private final GameplayUiFxReactor eventUiFx;
     private final WaveStartControls waveStartControls;
@@ -78,6 +76,9 @@ public final class GameScreen extends ScreenAdapter {
         this.touchWorld = new Vector3();
         this.mapVisuals = new GameplayMapRenderer();
         this.enemyShapes = new EnemyShapeRenderer(game.getEnemiesById());
+        this.towerShapes = new TowerShapeRenderer();
+        this.projectileRenderer = new ProjectileRenderer();
+        this.bloomPipeline = new FxBloomPipeline(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
         this.waveStartControls = new WaveStartControls(game);
@@ -108,13 +109,42 @@ public final class GameScreen extends ScreenAdapter {
         syncEndStateOverlay(view);
 
         GameTheme.clearBackground();
-
         camera.update();
+
+        // ══════════════════════════════════════════════════════════════════
+        // Everything (map + entities) goes inside the bloom capture so that
+        // vfxManager.renderToScreen() outputs the full scene.
+        // gdx-vfx renders to screen with blending disabled (full replace),
+        // so the path drawn BEFORE capture would be lost — capture everything.
+        // ══════════════════════════════════════════════════════════════════
+        bloomPipeline.beginCapture();
+
+        // Tiled map base (covered by backdrop, but kept for correctness)
         mapRenderer.setView(camera);
         mapRenderer.render();
 
+        // Ground backdrop + path + slots + markers
+        batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        renderWorldLayers(view);
+        drawVisualBackdrop();
+        // mapVisuals internally: batch.end → Filled shapes → Line shapes → batch.begin
+        mapVisuals.render(batch, camera.combined, view);
+        // batch is now in begin() state after mapVisuals
+
+        // Enemies (internally: batch.end → shapes → batch.begin)
+        enemyShapes.render(batch, camera.combined, view.getActiveEnemies(), view.getEnemyPath());
+        // Towers (internally: batch.end → shapes → batch.begin)
+        towerShapes.render(batch, camera.combined, view.getPlacedTowers());
+        // Projectiles + hit effects
+        drawFxLayer(view);
+        batch.end();
+
+        bloomPipeline.endCaptureAndRender();  // bloom applied, full scene output to screen
+
+        // ── UI — drawn after bloom so it stays crisp ───────────────────────
+        batch.begin();
+        hud.render(batch, view, debugMode);
+        drawEventOverlays();
         batch.end();
 
         if (endOverlayVisible) {
@@ -128,13 +158,16 @@ public final class GameScreen extends ScreenAdapter {
         }
     }
 
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Input
+    // ══════════════════════════════════════════════════════════════════════
+
     private InputProcessor createGameWorldInput() {
         return new InputAdapter() {
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-                if (endOverlayVisible || button != Input.Buttons.LEFT) {
-                    return false;
-                }
+                if (endOverlayVisible || button != Input.Buttons.LEFT) return false;
                 if (waveStartControls.getUi().getStage().hit(screenX, screenY, true) != null
                     || gameSpeedControls.getUi().getStage().hit(screenX, screenY, true) != null) {
                     return false;
@@ -147,9 +180,7 @@ public final class GameScreen extends ScreenAdapter {
 
             @Override
             public boolean keyDown(int keycode) {
-                if (endOverlayVisible) {
-                    return false;
-                }
+                if (endOverlayVisible) return false;
                 if (keycode == Input.Keys.SPACE && game.getGameMode() != GameMode.RUSH) {
                     waveStartControls.tryStartNextWave();
                     return true;
@@ -175,6 +206,10 @@ public final class GameScreen extends ScreenAdapter {
         ));
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // Lifecycle
+    // ══════════════════════════════════════════════════════════════════════
+
     @Override
     public void resize(int width, int height) {
         camera.setToOrtho(false, width, height);
@@ -182,6 +217,7 @@ public final class GameScreen extends ScreenAdapter {
         waveStartControls.resize(width, height);
         gameSpeedControls.resize(width, height);
         endStateUi.resize(width, height);
+        bloomPipeline.resize(width, height);
     }
 
     @Override
@@ -189,6 +225,9 @@ public final class GameScreen extends ScreenAdapter {
         mapRenderer.dispose();
         mapVisuals.dispose();
         enemyShapes.dispose();
+        towerShapes.dispose();
+        projectileRenderer.dispose();
+        bloomPipeline.dispose();
         batch.dispose();
         eventUiFx.dispose();
         waveStartControls.dispose();
@@ -201,178 +240,19 @@ public final class GameScreen extends ScreenAdapter {
         Gdx.input.setInputProcessor(null);
     }
 
-    private void syncEndStateOverlay(GameRuntimeView view) {
-        LevelStatus status = view.getLevelState().getStatus();
-        if (status != LevelStatus.COMPLETED && status != LevelStatus.FAILED) {
-            return;
-        }
-        if (endOverlayVisible && endOverlayStatus == status) {
-            return;
-        }
-        endOverlayStatus = status;
-        showEndOverlay(status);
-    }
-
-    private void showEndOverlay(LevelStatus status) {
-        endStateUi.getStage().clear();
-        endOverlayVisible = true;
-        GameRuntimeView view = game.getRuntimeView();
-        boolean victory = status == LevelStatus.COMPLETED;
-
-        Label title = new Label(victory ? "Victory!" : "Defeat", endStateUi.getSkin(), "label");
-
-        Table root = new Table();
-        root.setFillParent(true);
-        root.defaults().width(280f).pad(8f);
-        root.add(title).padBottom(victory ? 12f : 20f).row();
-
-        if (victory) {
-            root.defaults().height(28f);
-            root.add(new Label("Kills: " + view.getTotalKilledEnemies(), endStateUi.getSkin(), "label")).row();
-            root.add(new Label("Gold spent: " + view.getTotalGoldSpent(), endStateUi.getSkin(), "label")).row();
-            root.add(new Label("Time: " + view.getElapsedLevelTimeFormatted(), endStateUi.getSkin(), "label"))
-                .padBottom(16f)
-                .row();
-
-            TextButton continueButton = new TextButton("Continue", endStateUi.getSkin());
-            continueButton.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                    hideEndOverlay();
-                    game.getScreens().goTo(ScreenId.LEVEL_SELECT);
-                }
-            });
-            root.defaults().height(52f);
-            root.add(continueButton);
-        } else {
-            TextButton retryButton = new TextButton("Retry", endStateUi.getSkin());
-            retryButton.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                    hideEndOverlay();
-                    game.startLevel();
-                }
-            });
-
-            TextButton levelSelectButton = new TextButton("Level Select", endStateUi.getSkin());
-            levelSelectButton.addListener(new ChangeListener() {
-                @Override
-                public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
-                    hideEndOverlay();
-                    game.getScreens().goTo(ScreenId.LEVEL_SELECT);
-                }
-            });
-
-            root.defaults().height(52f);
-            root.add(retryButton).row();
-            root.add(levelSelectButton);
-        }
-
-        endStateUi.getStage().addActor(root);
-        Gdx.input.setInputProcessor(endStateUi.getStage());
-    }
-
-    private void hideEndOverlay() {
-        endOverlayVisible = false;
-        endOverlayStatus = null;
-        endStateUi.getStage().clear();
-        eventUiFx.clearTransientState();
-        bindGameplayInput();
-    }
-
-    private void renderWorldLayers(GameRuntimeView view) {
-        // Fixed layer list keeps depth order deterministic.
-        for (RenderLayer layer : RenderLayer.values()) {
-            renderLayer(layer, view);
-        }
-        batch.setColor(GameTheme.TINT_WHITE);
-    }
-
-    private void renderLayer(RenderLayer layer, GameRuntimeView view) {
-        switch (layer) {
-            case GROUND:
-                drawVisualBackdrop();
-                break;
-            case PROPS:
-                mapVisuals.render(batch, camera.combined, view);
-                break;
-            case ENEMIES:
-                drawEnemies(view);
-                break;
-            case TOWERS:
-                drawTowers(view);
-                break;
-            case FX:
-                drawFxLayer(view);
-                break;
-            case UI:
-                hud.render(batch, view, debugMode);
-                drawEventOverlays();
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void drawEnemies(GameRuntimeView view) {
-        int pathSegments = Math.max(1, view.getEnemyPath().size() - 1);
-        enemyShapes.render(batch, camera.combined, view.getActiveEnemies(), view.getEnemyPath());
-        for (ActiveEnemy enemy : view.getActiveEnemies()) {
-            float visualRadius = enemyShapes.getVisualRadius(enemy);
-            drawEnemyHpBar(enemy, visualRadius);
-            drawEnemyProgressBar(enemy, pathSegments, visualRadius);
-        }
-    }
-
-    private void drawEnemyHpBar(ActiveEnemy enemy, float visualRadius) {
-        float barX = enemy.getX();
-        float barY = enemy.getY() + visualRadius + 4f;
-        float hpRatio = enemy.getMaxHp() <= 0
-            ? 0f
-            : Math.max(0f, Math.min(1f, enemy.getCurrentHp() / (float) enemy.getMaxHp()));
-
-        batch.setColor(GameTheme.HP_BAR_BACKGROUND);
-        batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_HP_BAR_WIDTH, GameTheme.Draw.ENEMY_HP_BAR_HEIGHT);
-        batch.setColor(GameTheme.HP_BAR_FILL);
-        batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_HP_BAR_WIDTH * hpRatio, GameTheme.Draw.ENEMY_HP_BAR_HEIGHT);
-    }
-
-    private void drawEnemyProgressBar(ActiveEnemy enemy, int pathSegments, float visualRadius) {
-        float barX = enemy.getX() + 2f;
-        float barY = enemy.getY() + visualRadius + 9f;
-        float progressRatio = Math.max(0f, Math.min(1f, enemy.getTargetWaypointIndex() / (float) pathSegments));
-
-        batch.setColor(GameTheme.PROGRESS_BAR_BACKGROUND);
-        batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_PROGRESS_BAR_WIDTH, GameTheme.Draw.ENEMY_PROGRESS_BAR_HEIGHT);
-        batch.setColor(GameTheme.PROGRESS_BAR_FILL);
-        batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_PROGRESS_BAR_WIDTH * progressRatio, GameTheme.Draw.ENEMY_PROGRESS_BAR_HEIGHT);
-    }
-
-    private void drawTowers(GameRuntimeView view) {
-        for (PlacedTower tower : view.getPlacedTowers()) {
-            batch.setColor(GameTheme.TOWER_BLUE);
-            float size = GameTheme.Draw.TOWER_SIZE;
-            batch.draw(testTexture, tower.getX() - size / 2f, tower.getY() - size / 2f, size, size);
-        }
-    }
+    // ══════════════════════════════════════════════════════════════════════
+    // Draw helpers
+    // ══════════════════════════════════════════════════════════════════════
 
     private void drawFxLayer(GameRuntimeView view) {
-        for (ActiveProjectile projectile : view.getActiveProjectiles()) {
-            batch.setColor(GameTheme.PROJECTILE);
-            batch.draw(testTexture, projectile.getX() - 3f, projectile.getY() - 3f, 6f, 6f);
-        }
-        for (HitEffect hitEffect : view.getHitEffects()) {
-            float alpha = Math.min(1f, Math.max(0f, hitEffect.getTtlSec() / 0.14f));
-            batch.setColor(GameTheme.multiplyAlpha(GameTheme.HIT_EFFECT, alpha));
-            batch.draw(testTexture, hitEffect.getX() - 10f, hitEffect.getY() - 10f, 20f, 20f);
-        }
+        // Projectiles — orange circles
+        projectileRenderer.render(batch, camera.combined, view.getActiveProjectiles());
         drawFloatingRewardTexts();
     }
 
     private void drawVisualBackdrop() {
-        float width = camera.viewportWidth;
+        float width  = camera.viewportWidth;
         float height = camera.viewportHeight;
-
         batch.setColor(GameTheme.BACKDROP_BASE);
         batch.draw(testTexture, 0f, 0f, width, height);
         batch.setColor(GameTheme.BACKDROP_TOP_GLOW);
@@ -394,7 +274,7 @@ public final class GameScreen extends ScreenAdapter {
         GameplayUiFxReactor.BannerView banner = eventUiFx.getBannerView();
         if (banner != null) {
             float width = camera.viewportWidth;
-            float topY = camera.viewportHeight - 90f;
+            float topY  = camera.viewportHeight - 90f;
             batch.setColor(GameTheme.multiplyAlpha(GameTheme.BANNER_BACKGROUND, banner.getAlpha()));
             batch.draw(testTexture, width * 0.5f - 150f, topY - 26f, 300f, 34f);
             font.setColor(GameTheme.multiplyAlpha(GameTheme.BANNER_TEXT, banner.getAlpha()));
@@ -402,10 +282,11 @@ public final class GameScreen extends ScreenAdapter {
             font.setColor(GameTheme.UI_TEXT);
         }
 
-        GameplayUiFxReactor.ToastView toast = eventUiFx.getToastView();
-        if (toast != null) {
-            float width = camera.viewportWidth;
-            float y = camera.viewportHeight - 18f;
+        // Toast stack — shifted down so it clears the Gold/Time HUD row
+        float toastBaseY  = camera.viewportHeight - 62f;
+        float toastSlotH  = 30f;
+        for (GameplayUiFxReactor.ToastView toast : eventUiFx.getToastViews()) {
+            float y = toastBaseY - toast.getSlotIndex() * toastSlotH;
             if (toast.isError()) {
                 batch.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_ERROR_BACKGROUND, toast.getAlpha()));
                 font.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_ERROR_TEXT, toast.getAlpha()));
@@ -413,9 +294,81 @@ public final class GameScreen extends ScreenAdapter {
                 batch.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_SUCCESS_BACKGROUND, toast.getAlpha()));
                 font.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_SUCCESS_TEXT, toast.getAlpha()));
             }
-            batch.draw(testTexture, width - 340f, y - 22f, 320f, 26f);
-            font.draw(batch, toast.getText(), width - 332f, y - 4f);
+            batch.draw(testTexture, camera.viewportWidth - 340f, y - 22f, 320f, 26f);
+            font.draw(batch, toast.getText(), camera.viewportWidth - 332f, y - 4f);
             font.setColor(GameTheme.UI_TEXT);
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // End-state overlay
+    // ══════════════════════════════════════════════════════════════════════
+
+    private void syncEndStateOverlay(GameRuntimeView view) {
+        LevelStatus status = view.getLevelState().getStatus();
+        if (status != LevelStatus.COMPLETED && status != LevelStatus.FAILED) return;
+        if (endOverlayVisible && endOverlayStatus == status) return;
+        endOverlayStatus = status;
+        showEndOverlay(status);
+    }
+
+    private void showEndOverlay(LevelStatus status) {
+        endStateUi.getStage().clear();
+        endOverlayVisible = true;
+        GameRuntimeView view = game.getRuntimeView();
+        boolean victory = status == LevelStatus.COMPLETED;
+
+        Label title = new Label(victory ? "Victory!" : "Defeat", endStateUi.getSkin(), "label");
+        Table root = new Table();
+        root.setFillParent(true);
+        root.defaults().width(280f).pad(8f);
+        root.add(title).padBottom(victory ? 12f : 20f).row();
+
+        if (victory) {
+            root.defaults().height(28f);
+            root.add(new Label("Kills: "      + view.getTotalKilledEnemies(),    endStateUi.getSkin(), "label")).row();
+            root.add(new Label("Gold spent: " + view.getTotalGoldSpent(),        endStateUi.getSkin(), "label")).row();
+            root.add(new Label("Time: "       + view.getElapsedLevelTimeFormatted(), endStateUi.getSkin(), "label"))
+                .padBottom(16f).row();
+
+            TextButton continueButton = new TextButton("Continue", endStateUi.getSkin());
+            continueButton.addListener(new ChangeListener() {
+                @Override public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                    hideEndOverlay();
+                    game.getScreens().goTo(ScreenId.LEVEL_SELECT);
+                }
+            });
+            root.defaults().height(52f);
+            root.add(continueButton);
+        } else {
+            TextButton retryButton = new TextButton("Retry", endStateUi.getSkin());
+            retryButton.addListener(new ChangeListener() {
+                @Override public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                    hideEndOverlay();
+                    game.startLevel();
+                }
+            });
+            TextButton levelSelectButton = new TextButton("Level Select", endStateUi.getSkin());
+            levelSelectButton.addListener(new ChangeListener() {
+                @Override public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                    hideEndOverlay();
+                    game.getScreens().goTo(ScreenId.LEVEL_SELECT);
+                }
+            });
+            root.defaults().height(52f);
+            root.add(retryButton).row();
+            root.add(levelSelectButton);
+        }
+
+        endStateUi.getStage().addActor(root);
+        Gdx.input.setInputProcessor(endStateUi.getStage());
+    }
+
+    private void hideEndOverlay() {
+        endOverlayVisible = false;
+        endOverlayStatus  = null;
+        endStateUi.getStage().clear();
+        eventUiFx.clearTransientState();
+        bindGameplayInput();
     }
 }
