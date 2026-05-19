@@ -23,8 +23,8 @@ import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.ActiveProjectile;
-import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.HitEffect;
+import com.ironhold.core.render.GameplayMapRenderer;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.level.LevelStatus;
@@ -53,6 +53,7 @@ public final class GameScreen extends ScreenAdapter {
     private final TiledMap map;
     private final OrthogonalTiledMapRenderer mapRenderer;
     private final Vector3 touchWorld;
+    private final GameplayMapRenderer mapVisuals;
     private final StageHud hud;
     private final GameplayUiFxReactor eventUiFx;
     private final WaveStartControls waveStartControls;
@@ -73,6 +74,7 @@ public final class GameScreen extends ScreenAdapter {
         this.map = assetService.getLevel0Map();
         this.mapRenderer = new OrthogonalTiledMapRenderer(map, 1f, batch);
         this.touchWorld = new Vector3();
+        this.mapVisuals = new GameplayMapRenderer();
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
         this.waveStartControls = new WaveStartControls(game);
@@ -182,6 +184,7 @@ public final class GameScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         mapRenderer.dispose();
+        mapVisuals.dispose();
         batch.dispose();
         eventUiFx.dispose();
         waveStartControls.dispose();
@@ -287,9 +290,7 @@ public final class GameScreen extends ScreenAdapter {
                 drawVisualBackdrop();
                 break;
             case PROPS:
-                drawPathOverlay(view);
-                drawBaseAndSpawnMarkers(view);
-                drawBuildSlots(view);
+                mapVisuals.render(batch, camera.combined, view);
                 break;
             case ENEMIES:
                 drawEnemies(view);
@@ -306,17 +307,6 @@ public final class GameScreen extends ScreenAdapter {
                 break;
             default:
                 break;
-        }
-    }
-
-    private void drawBuildSlots(GameRuntimeView view) {
-        for (BuildSlot slot : view.getBuildSlots()) {
-            float slotSize = slot.isOccupied() ? GameTheme.Draw.SLOT_OCCUPIED_SIZE : GameTheme.Draw.SLOT_FREE_SIZE;
-            batch.setColor(slot.isOccupied() ? GameTheme.SLOT_OCCUPIED : GameTheme.SLOT_FREE);
-            batch.draw(testTexture, slot.getX() - slotSize / 2f, slot.getY() - slotSize / 2f, slotSize, slotSize);
-            batch.setColor(GameTheme.SLOT_CORE);
-            float core = GameTheme.Draw.SLOT_CORE_SIZE;
-            batch.draw(testTexture, slot.getX() - core / 2f, slot.getY() - core / 2f, core, core);
         }
     }
 
@@ -385,60 +375,6 @@ public final class GameScreen extends ScreenAdapter {
         batch.draw(testTexture, 0f, 0f, width, height * 0.22f);
         batch.setColor(GameTheme.BACKDROP_FRAME);
         batch.draw(testTexture, 16f, 16f, width - 32f, height - 32f);
-    }
-
-    private void drawPathOverlay(GameRuntimeView view) {
-        var path = view.getEnemyPath();
-        if (path.size() < 2) {
-            return;
-        }
-        for (int i = 0; i < path.size() - 1; i++) {
-            Vector2 from = path.get(i);
-            Vector2 to = path.get(i + 1);
-            drawPathSegment(from, to);
-        }
-    }
-
-    private void drawPathSegment(Vector2 from, Vector2 to) {
-        float dx = to.x - from.x;
-        float dy = to.y - from.y;
-        float length = (float) Math.sqrt(dx * dx + dy * dy);
-        if (length < 0.01f) {
-            return;
-        }
-
-        float roadWidth = GameTheme.Draw.ROAD_WIDTH;
-        batch.setColor(GameTheme.PATH_BODY);
-        if (Math.abs(dx) >= Math.abs(dy)) {
-            float y = Math.min(from.y, to.y) - roadWidth / 2f;
-            batch.draw(testTexture, Math.min(from.x, to.x), y, Math.abs(dx), roadWidth);
-        } else {
-            float x = Math.min(from.x, to.x) - roadWidth / 2f;
-            batch.draw(testTexture, x, Math.min(from.y, to.y), roadWidth, Math.abs(dy));
-        }
-
-        batch.setColor(GameTheme.PATH_LANE);
-        int markerCount = Math.max(1, (int) (length / GameTheme.Draw.ROAD_MARKER_STEP));
-        for (int m = 0; m <= markerCount; m++) {
-            float t = (float) m / markerCount;
-            float x = from.x + dx * t;
-            float y = from.y + dy * t;
-            batch.draw(testTexture, x - 3f, y - 3f, 6f, 6f);
-        }
-    }
-
-    private void drawBaseAndSpawnMarkers(GameRuntimeView view) {
-        var path = view.getEnemyPath();
-        if (path.isEmpty()) {
-            return;
-        }
-        Vector2 spawn = path.get(0);
-        Vector2 base = path.get(path.size() - 1);
-
-        batch.setColor(GameTheme.SPAWN_MARKER);
-        batch.draw(testTexture, spawn.x - 12f, spawn.y - 12f, 24f, 24f);
-        batch.setColor(GameTheme.BASE_MARKER);
-        batch.draw(testTexture, base.x - 14f, base.y - 14f, 28f, 28f);
     }
 
     private void drawFloatingRewardTexts() {
