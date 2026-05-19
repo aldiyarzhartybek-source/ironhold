@@ -155,6 +155,10 @@ public final class GameFacade {
         return enemies;
     }
 
+    public Map<String, Enemy> getEnemiesById() {
+        return enemiesById;
+    }
+
     public List<Tower> getTowers() {
         return towers;
     }

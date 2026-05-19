@@ -24,6 +24,7 @@ import com.ironhold.game.GameRuntimeView;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.HitEffect;
+import com.ironhold.core.render.EnemyShapeRenderer;
 import com.ironhold.core.render.GameplayMapRenderer;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.screen.ScreenId;
@@ -54,6 +55,7 @@ public final class GameScreen extends ScreenAdapter {
     private final OrthogonalTiledMapRenderer mapRenderer;
     private final Vector3 touchWorld;
     private final GameplayMapRenderer mapVisuals;
+    private final EnemyShapeRenderer enemyShapes;
     private final StageHud hud;
     private final GameplayUiFxReactor eventUiFx;
     private final WaveStartControls waveStartControls;
@@ -75,6 +77,7 @@ public final class GameScreen extends ScreenAdapter {
         this.mapRenderer = new OrthogonalTiledMapRenderer(map, 1f, batch);
         this.touchWorld = new Vector3();
         this.mapVisuals = new GameplayMapRenderer();
+        this.enemyShapes = new EnemyShapeRenderer(game.getEnemiesById());
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
         this.waveStartControls = new WaveStartControls(game);
@@ -185,6 +188,7 @@ public final class GameScreen extends ScreenAdapter {
     public void dispose() {
         mapRenderer.dispose();
         mapVisuals.dispose();
+        enemyShapes.dispose();
         batch.dispose();
         eventUiFx.dispose();
         waveStartControls.dispose();
@@ -312,17 +316,17 @@ public final class GameScreen extends ScreenAdapter {
 
     private void drawEnemies(GameRuntimeView view) {
         int pathSegments = Math.max(1, view.getEnemyPath().size() - 1);
+        enemyShapes.render(batch, camera.combined, view.getActiveEnemies(), view.getEnemyPath());
         for (ActiveEnemy enemy : view.getActiveEnemies()) {
-            batch.setColor(GameTheme.ENEMY_ACCENT);
-            batch.draw(testTexture, enemy.getX(), enemy.getY(), GameTheme.Draw.ENEMY_SIZE, GameTheme.Draw.ENEMY_SIZE);
-            drawEnemyHpBar(enemy);
-            drawEnemyProgressBar(enemy, pathSegments);
+            float visualRadius = enemyShapes.getVisualRadius(enemy);
+            drawEnemyHpBar(enemy, visualRadius);
+            drawEnemyProgressBar(enemy, pathSegments, visualRadius);
         }
     }
 
-    private void drawEnemyHpBar(ActiveEnemy enemy) {
+    private void drawEnemyHpBar(ActiveEnemy enemy, float visualRadius) {
         float barX = enemy.getX();
-        float barY = enemy.getY() + GameTheme.Draw.ENEMY_SIZE + 3f;
+        float barY = enemy.getY() + visualRadius + 4f;
         float hpRatio = enemy.getMaxHp() <= 0
             ? 0f
             : Math.max(0f, Math.min(1f, enemy.getCurrentHp() / (float) enemy.getMaxHp()));
@@ -333,9 +337,9 @@ public final class GameScreen extends ScreenAdapter {
         batch.draw(testTexture, barX, barY, GameTheme.Draw.ENEMY_HP_BAR_WIDTH * hpRatio, GameTheme.Draw.ENEMY_HP_BAR_HEIGHT);
     }
 
-    private void drawEnemyProgressBar(ActiveEnemy enemy, int pathSegments) {
+    private void drawEnemyProgressBar(ActiveEnemy enemy, int pathSegments, float visualRadius) {
         float barX = enemy.getX() + 2f;
-        float barY = enemy.getY() + GameTheme.Draw.ENEMY_SIZE + 8f;
+        float barY = enemy.getY() + visualRadius + 9f;
         float progressRatio = Math.max(0f, Math.min(1f, enemy.getTargetWaypointIndex() / (float) pathSegments));
 
         batch.setColor(GameTheme.PROGRESS_BAR_BACKGROUND);
