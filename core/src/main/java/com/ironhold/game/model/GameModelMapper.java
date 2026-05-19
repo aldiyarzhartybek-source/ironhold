@@ -57,9 +57,9 @@ public final class GameModelMapper {
 
     public static List<BuildSlot> defaultBuildSlots() {
         List<BuildSlot> slots = new ArrayList<>();
-        slots.add(new BuildSlot("slot-1", 220f, 180f, false, null));
-        slots.add(new BuildSlot("slot-2", 360f, 180f, false, null));
-        slots.add(new BuildSlot("slot-3", 500f, 180f, false, null));
+        slots.add(new BuildSlot("slot-1", 150f, 288f, false, null));
+        slots.add(new BuildSlot("slot-2", 340f, 180f, false, null));
+        slots.add(new BuildSlot("slot-3", 580f, 320f, false, null));
         return slots;
     }
 }
