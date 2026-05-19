@@ -100,7 +100,9 @@ public final class GameTheme {
         public static final float PATH_INNER_HALF_WIDTH = 18f;
         public static final int CIRCLE_SEGMENTS = 24;
         public static final float ROAD_MARKER_STEP = 24f;
-        public static final float ENEMY_SIZE = 20f;
+        /** Base radius for geometric enemy shapes (diameter ~= ENEMY_SIZE). */
+        public static final float ENEMY_RADIUS = 10f;
+        public static final float ENEMY_SIZE = ENEMY_RADIUS * 2f;
         public static final float ENEMY_HP_BAR_WIDTH = 20f;
         public static final float ENEMY_HP_BAR_HEIGHT = 3f;
         public static final float ENEMY_PROGRESS_BAR_WIDTH = 16f;
