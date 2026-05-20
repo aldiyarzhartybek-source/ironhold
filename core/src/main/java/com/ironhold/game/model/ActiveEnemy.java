@@ -15,6 +15,12 @@ public final class ActiveEnemy {
     private float y;
     private int targetWaypointIndex;
 
+    // ── Visual feedback state (driven by CombatRuntimeSystem, read by EnemyShapeRenderer) ──
+    /** Remaining time of the white-flash + scale-pulse triggered by a projectile hit. */
+    private float hitFlashTtlSec;
+    /** Duration assigned when the flash was triggered; used by the renderer to compute progress. */
+    private float hitFlashMaxSec;
+
     public ActiveEnemy(
         String runtimeId,
         String enemyId,
@@ -84,5 +90,40 @@ public final class ActiveEnemy {
 
     public void setTargetWaypointIndex(int targetWaypointIndex) {
         this.targetWaypointIndex = targetWaypointIndex;
+    }
+
+    // ── Hit-flash state (visual feedback only — see EnemyShapeRenderer) ──
+
+    public float getHitFlashTtlSec() {
+        return hitFlashTtlSec;
+    }
+
+    public float getHitFlashMaxSec() {
+        return hitFlashMaxSec;
+    }
+
+    /**
+     * Triggers a fresh hit-flash. Stacks by taking the longer remaining lifetime so
+     * that rapid fire keeps the flash visible without resetting the animation curve
+     * mid-frame.
+     */
+    public void triggerHitFlash(float durationSec) {
+        if (durationSec <= 0f) {
+            return;
+        }
+        if (durationSec > this.hitFlashTtlSec) {
+            this.hitFlashTtlSec = durationSec;
+            this.hitFlashMaxSec = durationSec;
+        }
+    }
+
+    /** Decays the flash timer; called once per tick by {@code CombatRuntimeSystem}. */
+    public void tickHitFlash(float deltaSec) {
+        if (this.hitFlashTtlSec > 0f) {
+            this.hitFlashTtlSec = Math.max(0f, this.hitFlashTtlSec - deltaSec);
+            if (this.hitFlashTtlSec == 0f) {
+                this.hitFlashMaxSec = 0f;
+            }
+        }
     }
 }
