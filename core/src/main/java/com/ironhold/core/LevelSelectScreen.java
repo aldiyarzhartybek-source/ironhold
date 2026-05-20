@@ -1,7 +1,14 @@
 package com.ironhold.core;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.SelectBox;
@@ -22,6 +29,8 @@ import java.util.Objects;
  */
 public final class LevelSelectScreen extends ScreenAdapter {
 
+    private static final float BG_R = 0.04f, BG_G = 0.04f, BG_B = 0.13f;
+
     private static final float LEVEL_CARD_WIDTH = 132f;
     private static final float LEVEL_CARD_HEIGHT = 88f;
     private static final float ACTION_BUTTON_WIDTH = 260f;
@@ -30,6 +39,7 @@ public final class LevelSelectScreen extends ScreenAdapter {
 
     private final GameFacade game;
     private final UiLayer ui;
+    private final ShapeRenderer shapes;
     private final TextButton[] levelButtons = new TextButton[ProgressService.MAX_LEVELS];
     private final Label[] levelStatusLabels = new Label[ProgressService.MAX_LEVELS];
 
@@ -39,8 +49,9 @@ public final class LevelSelectScreen extends ScreenAdapter {
     private int selectedLevel = 1;
 
     public LevelSelectScreen(GameFacade game) {
-        this.game = Objects.requireNonNull(game, "game");
-        this.ui = new UiLayer(game.getAssets().getSkin());
+        this.game   = Objects.requireNonNull(game, "game");
+        this.ui     = new UiLayer(game.getAssets().getSkin());
+        this.shapes = new ShapeRenderer();
         initLayout();
     }
 
@@ -56,7 +67,9 @@ public final class LevelSelectScreen extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        GameTheme.clearBackground();
+        Gdx.gl.glClearColor(BG_R, BG_G, BG_B, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        drawGradientBackground();
         ui.act(delta);
         ui.draw();
     }
@@ -73,7 +86,41 @@ public final class LevelSelectScreen extends ScreenAdapter {
 
     @Override
     public void dispose() {
+        shapes.dispose();
         ui.dispose();
+    }
+
+    private void drawGradientBackground() {
+        float w = Gdx.graphics.getWidth();
+        float h = Gdx.graphics.getHeight();
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.setProjectionMatrix(ui.getStage().getCamera().combined);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+        final int STEPS = 16;
+
+        // Upper-right glow — blue-violet tint
+        for (int i = STEPS; i >= 1; i--) {
+            float t  = i / (float) STEPS;
+            float rw = w * 0.90f * t;
+            float rh = h * 0.80f * t;
+            shapes.setColor(0.11f, 0.09f, 0.30f, 0.028f * t);
+            shapes.ellipse(w * 0.58f - rw * 0.5f, h * 0.52f - rh * 0.5f, rw, rh);
+        }
+
+        // Lower-left glow — darker indigo accent
+        for (int i = STEPS; i >= 1; i--) {
+            float t  = i / (float) STEPS;
+            float rw = w * 0.65f * t;
+            float rh = h * 0.60f * t;
+            shapes.setColor(0.07f, 0.05f, 0.22f, 0.020f * t);
+            shapes.ellipse(-rw * 0.25f, -rh * 0.15f, rw, rh);
+        }
+
+        shapes.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
     }
 
     private void initLayout() {
@@ -94,18 +141,20 @@ public final class LevelSelectScreen extends ScreenAdapter {
         levelGrid.defaults().pad(6f);
         for (int level = 1; level <= ProgressService.MAX_LEVELS; level++) {
             levelButtons[level - 1] = createLevelButton(level);
-            levelStatusLabels[level - 1] = new Label("", ui.getSkin(), "label-muted");
+            Label statusLabel = new Label("", ui.getSkin(), "label-muted");
+            statusLabel.setAlignment(Align.center);
+            levelStatusLabels[level - 1] = statusLabel;
             Table card = new Table();
             card.defaults().pad(2f);
             card.add(levelButtons[level - 1]).size(LEVEL_CARD_WIDTH, LEVEL_CARD_HEIGHT).row();
-            card.add(levelStatusLabels[level - 1]);
+            card.add(statusLabel).width(LEVEL_CARD_WIDTH).center();
             levelGrid.add(card);
             if (level % 3 == 0) {
                 levelGrid.row();
             }
         }
 
-        startButton = new TextButton("Start", ui.getSkin());
+        startButton = new TextButton("Start", ui.getSkin(), "menu-button");
         startButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
@@ -113,7 +162,7 @@ public final class LevelSelectScreen extends ScreenAdapter {
             }
         });
 
-        TextButton backButton = new TextButton("Back", ui.getSkin());
+        TextButton backButton = new TextButton("Back", ui.getSkin(), "menu-button");
         backButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
@@ -123,16 +172,15 @@ public final class LevelSelectScreen extends ScreenAdapter {
 
         Table root = new Table();
         root.setFillParent(true);
-        root.defaults().pad(8f);
-        root.add(title).padBottom(4f).row();
-        root.add(progressLabel).padBottom(12f).row();
+        root.add(title).padBottom(2f).row();
+        root.add(progressLabel).padBottom(20f).row();
 
         Table modeRow = new Table();
         modeRow.add(modeLabel).padRight(12f);
         modeRow.add(modeSelect).width(220f).height(44f);
-        root.add(modeRow).padBottom(16f).row();
+        root.add(modeRow).padBottom(20f).row();
 
-        root.add(levelGrid).padBottom(20f).row();
+        root.add(levelGrid).padBottom(24f).row();
 
         Table actions = new Table();
         actions.defaults().width(ACTION_BUTTON_WIDTH).height(ACTION_BUTTON_HEIGHT).pad(6f);
@@ -141,10 +189,21 @@ public final class LevelSelectScreen extends ScreenAdapter {
         root.add(actions);
 
         ui.getStage().addActor(root);
+
+        ui.getStage().addListener(new InputListener() {
+            @Override
+            public boolean keyDown(InputEvent event, int keycode) {
+                if (keycode == Input.Keys.ESCAPE) {
+                    game.getScreens().goTo(ScreenId.MENU);
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     private TextButton createLevelButton(int levelNumber) {
-        TextButton button = new TextButton("Level " + levelNumber, ui.getSkin());
+        TextButton button = new TextButton("Level " + levelNumber, ui.getSkin(), "menu-button");
         final int level = levelNumber;
         button.addListener(new ChangeListener() {
             @Override
@@ -172,28 +231,37 @@ public final class LevelSelectScreen extends ScreenAdapter {
 
     private void refreshLevelCards() {
         for (int level = 1; level <= ProgressService.MAX_LEVELS; level++) {
-            boolean unlocked = game.isLevelUnlocked(level);
+            boolean unlocked  = game.isLevelUnlocked(level);
             boolean completed = game.getProgressService().isLevelCompleted(level);
-            boolean selected = level == selectedLevel;
+            boolean selected  = level == selectedLevel;
 
             TextButton button = levelButtons[level - 1];
             button.setDisabled(!unlocked);
             button.setTouchable(unlocked ? Touchable.enabled : Touchable.disabled);
-            if (selected && unlocked) {
-                button.setColor(GameTheme.PATH_TEAL);
-            } else if (unlocked) {
-                button.setColor(GameTheme.UI_TEXT);
+
+            if (!unlocked) {
+                // Locked — genuinely faded out so the player understands it's unavailable.
+                button.setColor(1f, 1f, 1f, 0.35f);
+            } else if (selected) {
+                // Selected — subtle teal tint to highlight choice.
+                button.setColor(GameTheme.PATH_TEAL.r, GameTheme.PATH_TEAL.g,
+                    GameTheme.PATH_TEAL.b, 1f);
             } else {
-                button.setColor(GameTheme.UI_TEXT_MUTED);
+                button.setColor(Color.WHITE);
             }
 
             Label status = levelStatusLabels[level - 1];
+            status.setAlignment(Align.center);
             if (!unlocked) {
                 status.setText("Locked");
+                status.setColor(GameTheme.UI_TEXT_MUTED.r, GameTheme.UI_TEXT_MUTED.g,
+                    GameTheme.UI_TEXT_MUTED.b, 0.35f);
             } else if (completed) {
-                status.setText("Completed · " + game.getLevelStartingGold(level) + "g");
+                status.setColor(GameTheme.UI_TEXT_MUTED);
+                status.setText("Done  " + game.getLevelStartingGold(level) + "g");
             } else {
-                status.setText("Start: " + game.getLevelStartingGold(level) + " gold");
+                status.setColor(GameTheme.UI_TEXT_MUTED);
+                status.setText(game.getLevelStartingGold(level) + "g start");
             }
         }
     }

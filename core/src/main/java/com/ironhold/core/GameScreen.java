@@ -2,7 +2,6 @@ package com.ironhold.core;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -10,11 +9,15 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputMultiplexer;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -23,14 +26,11 @@ import com.ironhold.core.fx.FxBloomPipeline;
 import com.ironhold.game.GameFacade;
 import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
-import com.ironhold.game.model.ActiveEnemy;
-import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.core.render.EnemyShapeRenderer;
 import com.ironhold.core.render.GameplayMapRenderer;
 import com.ironhold.core.render.HitEffectRenderer;
 import com.ironhold.core.render.ProjectileRenderer;
 import com.ironhold.core.render.TowerShapeRenderer;
-import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.screen.ScreenId;
 import com.ironhold.level.LevelStatus;
 import com.ironhold.ui.GameTheme;
@@ -61,9 +61,11 @@ public final class GameScreen extends ScreenAdapter {
     private final WaveStartControls waveStartControls;
     private final GameSpeedControls gameSpeedControls;
     private final UiLayer endStateUi;
+    private final UiLayer pauseUi;
     private final InputProcessor gameWorldInput;
     private boolean endOverlayVisible;
     private LevelStatus endOverlayStatus;
+    private boolean isPaused;
 
     public GameScreen(GameFacade game) {
         this.game = Objects.requireNonNull(game, "game");
@@ -87,9 +89,12 @@ public final class GameScreen extends ScreenAdapter {
         this.waveStartControls = new WaveStartControls(game);
         this.gameSpeedControls = new GameSpeedControls(game);
         this.endStateUi = new UiLayer(assetService.getSkin());
+        this.pauseUi    = new UiLayer(assetService.getSkin());
         this.gameWorldInput = createGameWorldInput();
         this.endOverlayVisible = false;
-        this.endOverlayStatus = null;
+        this.endOverlayStatus  = null;
+        this.isPaused          = false;
+        initPauseOverlay(assetService.getSkin());
         resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
     }
 
@@ -102,7 +107,9 @@ public final class GameScreen extends ScreenAdapter {
 
     @Override
     public void render(float delta) {
-        game.updateLevel(delta);
+        if (!isPaused) {
+            game.updateLevel(delta);
+        }
         eventUiFx.update(delta);
         GameRuntimeView view = game.getRuntimeView();
         if (!endOverlayVisible) {
@@ -153,6 +160,9 @@ public final class GameScreen extends ScreenAdapter {
         if (endOverlayVisible) {
             endStateUi.act(delta);
             endStateUi.draw();
+        } else if (isPaused) {
+            pauseUi.act(delta);
+            pauseUi.draw();
         } else {
             waveStartControls.act(delta);
             gameSpeedControls.act(delta);
@@ -183,6 +193,10 @@ public final class GameScreen extends ScreenAdapter {
 
             @Override
             public boolean keyDown(int keycode) {
+                if (keycode == Input.Keys.ESCAPE) {
+                    showPauseOverlay();
+                    return true;
+                }
                 if (endOverlayVisible) return false;
                 if (keycode == Input.Keys.SPACE && game.getGameMode() != GameMode.RUSH) {
                     waveStartControls.tryStartNextWave();
@@ -209,6 +223,84 @@ public final class GameScreen extends ScreenAdapter {
         ));
     }
 
+    // ── Pause overlay ──────────────────────────────────────────────────────
+
+    private void initPauseOverlay(com.badlogic.gdx.scenes.scene2d.ui.Skin skin) {
+        Table root = new Table();
+        root.setFillParent(true);
+
+        Table panel = new Table();
+        panel.defaults().pad(8f);
+
+        Label title = new Label("Paused", skin, "title");
+        panel.add(title).padBottom(24f).row();
+        panel.add(pauseButton("Resume", new Runnable() {
+            @Override public void run() { hidePauseOverlay(); }
+        })).width(220f).height(52f).row();
+        panel.add(pauseButton("Exit to Menu", new Runnable() {
+            @Override public void run() {
+                isPaused = false;
+                game.getScreens().goTo(ScreenId.MENU);
+            }
+        })).width(220f).height(52f);
+
+        root.add(panel).pad(48f);
+        pauseUi.getStage().addActor(root);
+
+        // Escape resumes the game from within the pause overlay.
+        pauseUi.getStage().addListener(new InputListener() {
+            @Override
+            public boolean keyDown(InputEvent event, int keycode) {
+                if (keycode == Input.Keys.ESCAPE) {
+                    hidePauseOverlay();
+                    return true;
+                }
+                return false;
+            }
+        });
+    }
+
+    /** Creates a menu-style button used inside the pause overlay. */
+    private TextButton pauseButton(String text, final Runnable onClick) {
+        final TextButton btn = new TextButton(text, pauseUi.getSkin(), "menu-button");
+        btn.setTransform(true);
+        btn.getLabel().setColor(Color.WHITE);
+        btn.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
+                onClick.run();
+            }
+        });
+        btn.addListener(new InputListener() {
+            @Override
+            public void enter(InputEvent e, float x, float y, int pointer,
+                              com.badlogic.gdx.scenes.scene2d.Actor from) {
+                btn.clearActions();
+                btn.addAction(Actions.scaleTo(1.05f, 1.05f, 0.13f, Interpolation.sineOut));
+            }
+            @Override
+            public void exit(InputEvent e, float x, float y, int pointer,
+                             com.badlogic.gdx.scenes.scene2d.Actor to) {
+                btn.clearActions();
+                btn.addAction(Actions.scaleTo(1f, 1f, 0.13f, Interpolation.sineOut));
+            }
+        });
+        // Set scale origin to centre after a layout pass.
+        pauseUi.getStage().act(0f);
+        btn.setOrigin(btn.getWidth() / 2f, btn.getHeight() / 2f);
+        return btn;
+    }
+
+    private void showPauseOverlay() {
+        isPaused = true;
+        Gdx.input.setInputProcessor(pauseUi.getStage());
+    }
+
+    private void hidePauseOverlay() {
+        isPaused = false;
+        bindGameplayInput();
+    }
+
     // ══════════════════════════════════════════════════════════════════════
     // Lifecycle
     // ══════════════════════════════════════════════════════════════════════
@@ -220,6 +312,7 @@ public final class GameScreen extends ScreenAdapter {
         waveStartControls.resize(width, height);
         gameSpeedControls.resize(width, height);
         endStateUi.resize(width, height);
+        pauseUi.resize(width, height);
         bloomPipeline.resize(width, height);
     }
 
@@ -237,6 +330,7 @@ public final class GameScreen extends ScreenAdapter {
         waveStartControls.dispose();
         gameSpeedControls.dispose();
         endStateUi.dispose();
+        pauseUi.dispose();
     }
 
     @Override
