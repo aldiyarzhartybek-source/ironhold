@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Matrix4;
 import com.ironhold.game.model.ActiveProjectile;
+import com.ironhold.game.model.ProjectileKind;
 import com.ironhold.ui.GameTheme;
 
 import java.util.List;
@@ -54,6 +55,11 @@ public final class ProjectileRenderer {
     }
 
     private void drawProjectile(ActiveProjectile p) {
+        if (p.getKind() == ProjectileKind.MORTAR_SHELL) {
+            drawMortarShell(p);
+            return;
+        }
+
         // Travel direction = (current - prev). On the first frame these are equal,
         // so we fall back to a horizontal default to avoid drawing a zero-length beam.
         float dx = p.getX() - p.getPrevX();
@@ -109,6 +115,16 @@ public final class ProjectileRenderer {
         float ex = cx + rx * cos - by * sin, ey = cy + rx * sin + by * cos;
         shapes.triangle(ax, ay, bx, b_y, ex, ey);
         shapes.triangle(ax, ay, ex, ey, dx, dy);
+    }
+
+    private void drawMortarShell(ActiveProjectile p) {
+        float r = GameTheme.Draw.MORTAR_SHELL_RADIUS;
+        shapes.setColor(GameTheme.MORTAR_SHELL_GLOW);
+        shapes.circle(p.getX(), p.getY(), r + 2.5f, 16);
+        shapes.setColor(GameTheme.MORTAR_SHELL);
+        shapes.circle(p.getX(), p.getY(), r, 14);
+        shapes.setColor(GameTheme.MORTAR_CORE);
+        shapes.circle(p.getX(), p.getY(), r * 0.45f, 10);
     }
 
     private static Color scaleAlpha(Color source, float factor) {
