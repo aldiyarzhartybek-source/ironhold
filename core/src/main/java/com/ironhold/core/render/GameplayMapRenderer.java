@@ -33,7 +33,7 @@ public final class GameplayMapRenderer {
     // Trench/path inner shadow offset (solid colour, no alpha accumulation)
     private static final float SHADOW_OX    = -14f;
     private static final float SHADOW_OY    = -14f;
-    private static final Color SHADOW_COLOR = new Color(0.10f, 0.22f, 0.20f, 1f);
+    private static final Color SHADOW_COLOR = new Color(0.02f, 0.02f, 0.07f, 1f);
 
 
     private final ShapeRenderer shapes;
@@ -282,7 +282,4 @@ public final class GameplayMapRenderer {
         shapes.triangle(x2 + nx, y2 + ny, x1 - nx, y1 - ny, x2 - nx, y2 - ny);
     }
 
-    private static Vector2 dir(Vector2 a, Vector2 b) {
-        return new Vector2(b.x - a.x, b.y - a.y).nor();
-    }
 }

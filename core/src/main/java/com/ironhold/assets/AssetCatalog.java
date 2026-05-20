@@ -10,6 +10,9 @@ public final class AssetCatalog {
     public static final String SKIN_UI = "skin/ui";
     public static final String MAP_LEVEL_0 = "maps/level0.tmx";
 
+    /** TrueType font used for all in-game text (Fredoka One, SIL Open Font Licence). */
+    public static final String FONT_TTF = "Fredoka One/FredokaOne-Regular.ttf";
+
     private AssetCatalog() {
     }
 }
