@@ -10,7 +10,7 @@ import com.badlogic.gdx.graphics.GL20;
 public final class GameTheme {
 
     // --- Core palette ---
-    public static final Color BACKGROUND   = hex("252638");
+    public static final Color BACKGROUND   = hex("0A0A21");
     public static final Color PATH_TEAL    = hex("1ECFBF");
     public static final Color ENEMY_ACCENT = hex("F77F2A");
     public static final Color GOLD         = hex("F5C542");
@@ -24,14 +24,12 @@ public final class GameTheme {
     public static final Color BUTTON_DOWN   = hex("292933");
 
     // --- Wall / groove / slot ---
-    public static final Color WALL_COLOR        = hex("15A89E");
-    public static final Color GROOVE_COLOR      = new Color(0.17f, 0.22f, 0.25f, 1f);
-    public static final Color SLOT_RECESS       = hex("169488");
-    public static final Color SLOT_RECESS_INNER = hex("0f6e63");
+    public static final Color WALL_COLOR        = new Color(0.08f, 0.08f, 0.20f, 1f);
+    public static final Color GROOVE_COLOR      = new Color(0.62f, 0.65f, 0.82f, 1f);
+    public static final Color SLOT_RECESS       = new Color(0.20f, 0.22f, 0.42f, 1f);
+    public static final Color SLOT_RECESS_INNER = new Color(0.10f, 0.11f, 0.24f, 1f);
 
     // --- Shadow ---
-    /** Solid opaque flat shadow — no alpha blending, avoids accumulation artefacts. */
-    public static final Color SHADOW_COLOR = new Color(0.10f, 0.22f, 0.20f, 1f);
 
     // --- Tower ---
     public static final Color TOWER_OUTLINE = Color.WHITE;
@@ -55,7 +53,7 @@ public final class GameTheme {
 
     // --- Backdrop (GameScreen drawVisualBackdrop) ---
     public static final Color BACKDROP_BASE     = withAlpha(BACKGROUND, 1f);
-    public static final Color BACKDROP_TOP_GLOW = hex("1C2420");
+    public static final Color BACKDROP_TOP_GLOW = hex("0C0C24");
     public static final Color BACKDROP_FRAME    = withAlpha(PATH_TEAL, 0.12f);
 
     // --- Markers ---
@@ -77,7 +75,7 @@ public final class GameTheme {
     private GameTheme() {}
 
     public static void clearBackground() {
-        Gdx.gl.glClearColor(0.145f, 0.149f, 0.220f, 1f);
+        Gdx.gl.glClearColor(0.04f, 0.04f, 0.13f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
     }
 
@@ -100,7 +98,6 @@ public final class GameTheme {
     /** Shared layout numbers for world drawing. */
     public static final class Draw {
         // Wall / groove geometry
-        public static final float WALL_HALF_WIDTH   = 32f;
         public static final float GROOVE_HALF_WIDTH = 16f;
 
         // Tower — rounded hollow square
