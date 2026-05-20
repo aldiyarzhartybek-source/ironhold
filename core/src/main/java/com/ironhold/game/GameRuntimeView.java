@@ -6,6 +6,7 @@ import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.LightningEffect;
+import com.ironhold.game.model.FlameConeEffect;
 import com.ironhold.game.model.MortarExplosionEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
@@ -27,6 +28,7 @@ public final class GameRuntimeView {
     private final List<HitEffect> hitEffects;
     private final List<LightningEffect> lightningEffects;
     private final List<MortarExplosionEffect> mortarExplosions;
+    private final List<FlameConeEffect> flameConeEffects;
     private final int gold;
     private final GameFacade.BuildPlacementResult lastBuildPlacementResult;
     private final int totalKilledEnemies;
@@ -56,6 +58,7 @@ public final class GameRuntimeView {
         List<HitEffect> hitEffects,
         List<LightningEffect> lightningEffects,
         List<MortarExplosionEffect> mortarExplosions,
+        List<FlameConeEffect> flameConeEffects,
         int gold,
         GameFacade.BuildPlacementResult lastBuildPlacementResult,
         int totalKilledEnemies,
@@ -84,6 +87,7 @@ public final class GameRuntimeView {
         this.hitEffects = List.copyOf(Objects.requireNonNull(hitEffects, "hitEffects"));
         this.lightningEffects = List.copyOf(Objects.requireNonNull(lightningEffects, "lightningEffects"));
         this.mortarExplosions = List.copyOf(Objects.requireNonNull(mortarExplosions, "mortarExplosions"));
+        this.flameConeEffects = List.copyOf(Objects.requireNonNull(flameConeEffects, "flameConeEffects"));
         this.gold = gold;
         this.lastBuildPlacementResult = Objects.requireNonNull(lastBuildPlacementResult, "lastBuildPlacementResult");
         this.totalKilledEnemies = totalKilledEnemies;
@@ -155,6 +159,10 @@ public final class GameRuntimeView {
 
     public List<MortarExplosionEffect> getMortarExplosions() {
         return mortarExplosions;
+    }
+
+    public List<FlameConeEffect> getFlameConeEffects() {
+        return flameConeEffects;
     }
 
     public GameFacade.BuildPlacementResult getLastBuildPlacementResult() {
@@ -230,6 +238,7 @@ public final class GameRuntimeView {
         private List<HitEffect> hitEffects;
         private List<LightningEffect> lightningEffects;
         private List<MortarExplosionEffect> mortarExplosions;
+        private List<FlameConeEffect> flameConeEffects;
         private int gold;
         private GameFacade.BuildPlacementResult lastBuildPlacementResult;
         private int totalKilledEnemies;
@@ -270,6 +279,7 @@ public final class GameRuntimeView {
             hitEffects = state.getHitEffects();
             lightningEffects = state.getLightningEffects();
             mortarExplosions = state.getMortarExplosions();
+            flameConeEffects = state.getFlameConeEffects();
             totalKilledEnemies = state.getSessionStats().getKills();
             lastAwardedGold = state.getLastAwardedGold();
             totalGoldSpent = state.getSessionStats().getGoldSpent();
@@ -317,6 +327,7 @@ public final class GameRuntimeView {
             Objects.requireNonNull(hitEffects, "hitEffects");
             Objects.requireNonNull(lightningEffects, "lightningEffects");
             Objects.requireNonNull(mortarExplosions, "mortarExplosions");
+            Objects.requireNonNull(flameConeEffects, "flameConeEffects");
             Objects.requireNonNull(lastBuildPlacementResult, "lastBuildPlacementResult");
             Objects.requireNonNull(enemyPath, "enemyPath");
             Objects.requireNonNull(availableTowers, "availableTowers");
@@ -332,6 +343,7 @@ public final class GameRuntimeView {
                 hitEffects,
                 lightningEffects,
                 mortarExplosions,
+                flameConeEffects,
                 gold,
                 lastBuildPlacementResult,
                 totalKilledEnemies,

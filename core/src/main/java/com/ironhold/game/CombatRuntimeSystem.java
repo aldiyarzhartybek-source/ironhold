@@ -9,6 +9,7 @@ import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.EconomyState;
 import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.LightningEffect;
+import com.ironhold.game.model.FlameConeEffect;
 import com.ironhold.game.model.MortarExplosionEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.ProjectileKind;
@@ -27,8 +28,14 @@ public final class CombatRuntimeSystem {
     private static final float PROJECTILE_SPEED = 320f;
     private static final float PROJECTILE_HIT_RADIUS = 12f;
 
+    private static final String FLAMETHROWER_TOWER_ID = "flamethrower_tower";
     private static final String MORTAR_TOWER_ID = "mortar_tower";
     private static final String LIGHTNING_TOWER_ID = "lightning_tower";
+    private static final float FLAME_CONE_DURATION_SEC = 0.32f;
+    /** Half-angle of the flame cone (radians) — smaller = narrower spray. */
+    private static final float FLAME_CONE_HALF_ANGLE_RAD = 0.26f;
+    /** Flame reach is shorter than the tower's targeting range. */
+    private static final float FLAME_CONE_RANGE_MULT = 0.55f;
     private static final float MORTAR_SHELL_SPEED = 95f;
     private static final float MORTAR_SHELL_HIT_RADIUS = 14f;
     private static final float MORTAR_SPLASH_RADIUS = 52f;
@@ -65,6 +72,7 @@ public final class CombatRuntimeSystem {
         updateHitEffects(state, safeDeltaSec);
         updateLightningEffects(state, safeDeltaSec);
         updateMortarExplosions(state, safeDeltaSec);
+        updateFlameCones(state, safeDeltaSec);
     }
 
     private void updateEnemyMovement(GameRuntimeState state, float deltaSec) {
@@ -110,6 +118,8 @@ public final class CombatRuntimeSystem {
                 fireLightning(state, tower);
             } else if (MORTAR_TOWER_ID.equals(tower.getTowerId())) {
                 fireMortar(state, tower);
+            } else if (FLAMETHROWER_TOWER_ID.equals(tower.getTowerId())) {
+                fireFlamethrower(state, tower);
             } else {
                 fireProjectile(state, tower);
             }
@@ -127,6 +137,25 @@ public final class CombatRuntimeSystem {
             tower.getX(),
             tower.getY(),
             PROJECTILE_SPEED
+        ));
+    }
+
+    private void fireFlamethrower(GameRuntimeState state, PlacedTower tower) {
+        ActiveEnemy target = pickTargetForTower(state, tower);
+        if (target == null) return;
+        tower.setCooldownSec(tower.getFireRateSec());
+        float dx = target.getX() - tower.getX();
+        float dy = target.getY() - tower.getY();
+        float aim = (float) Math.atan2(dy, dx);
+        float coneRange = tower.getRange() * FLAME_CONE_RANGE_MULT;
+        state.getFlameConeEffects().add(new FlameConeEffect(
+            tower.getX(),
+            tower.getY(),
+            aim,
+            coneRange,
+            FLAME_CONE_HALF_ANGLE_RAD,
+            tower.getDamage(),
+            FLAME_CONE_DURATION_SEC
         ));
     }
 
@@ -305,6 +334,59 @@ public final class CombatRuntimeSystem {
                 killedEnemies.add(enemy);
             }
         }
+    }
+
+    private void updateFlameCones(GameRuntimeState state, float deltaSec) {
+        if (deltaSec <= 0f || state.getFlameConeEffects().isEmpty()) return;
+
+        List<FlameConeEffect> expired = new ArrayList<>();
+        List<ActiveEnemy> killed = new ArrayList<>();
+
+        for (FlameConeEffect cone : state.getFlameConeEffects()) {
+            cone.setTtlSec(cone.getTtlSec() - deltaSec);
+            float reach = cone.getReachDistance();
+            for (ActiveEnemy enemy : state.getActiveEnemies()) {
+                if (cone.hasDamaged(enemy.getRuntimeId())) {
+                    continue;
+                }
+                if (!isEnemyInFlameCone(enemy, cone, reach)) {
+                    continue;
+                }
+                enemy.setCurrentHp(enemy.getCurrentHp() - cone.getDamage());
+                enemy.triggerHitFlash(HIT_FLASH_DURATION_SEC);
+                cone.markDamaged(enemy.getRuntimeId());
+                if (enemy.getCurrentHp() <= 0 && !killed.contains(enemy)) {
+                    killed.add(enemy);
+                }
+            }
+            if (cone.getTtlSec() <= 0f) {
+                expired.add(cone);
+            }
+        }
+
+        if (!expired.isEmpty()) {
+            state.getFlameConeEffects().removeAll(expired);
+        }
+        if (!killed.isEmpty()) {
+            for (ActiveEnemy enemy : killed) {
+                awardKill(state, enemy);
+            }
+            state.getActiveEnemies().removeAll(killed);
+        }
+    }
+
+    private static boolean isEnemyInFlameCone(ActiveEnemy enemy, FlameConeEffect cone, float reach) {
+        if (reach <= 0.5f) return false;
+        float dx = enemy.getX() - cone.getOriginX();
+        float dy = enemy.getY() - cone.getOriginY();
+        float cos = (float) Math.cos(cone.getAimAngleRad());
+        float sin = (float) Math.sin(cone.getAimAngleRad());
+        float along = dx * cos + dy * sin;
+        if (along < 0f || along > reach) {
+            return false;
+        }
+        float perp = Math.abs(-dx * sin + dy * cos);
+        return perp <= along * (float) Math.tan(cone.getHalfAngleRad());
     }
 
     private void updateMortarExplosions(GameRuntimeState state, float deltaSec) {

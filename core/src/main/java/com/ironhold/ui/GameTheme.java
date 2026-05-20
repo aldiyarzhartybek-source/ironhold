@@ -47,6 +47,13 @@ public final class GameTheme {
     /** Trail tint — fades from the halo colour down to transparent. */
     public static final Color PROJECTILE_TRAIL    = withAlpha(hex("8FF5E8"), 0.55f);
 
+    // --- Flamethrower tower ---
+    public static final Color FLAME_OUTLINE = Color.WHITE;
+    public static final Color FLAME_CORE     = hex("FF5500");
+    public static final Color FLAME_CORE_GLOW = new Color(1.00f, 0.35f, 0.10f, 0.9f);
+    public static final Color FLAME_YELLOW   = new Color(1.00f, 0.95f, 0.25f, 0.75f);
+    public static final Color FLAME_RED      = new Color(1.00f, 0.22f, 0.08f, 0.65f);
+
     // --- Mortar tower ---
     public static final Color MORTAR_OUTLINE   = Color.WHITE;
     public static final Color MORTAR_CORE      = hex("8B1538");
