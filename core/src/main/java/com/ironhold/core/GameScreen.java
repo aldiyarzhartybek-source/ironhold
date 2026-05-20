@@ -27,6 +27,7 @@ import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.core.render.EnemyShapeRenderer;
 import com.ironhold.core.render.GameplayMapRenderer;
+import com.ironhold.core.render.HitEffectRenderer;
 import com.ironhold.core.render.ProjectileRenderer;
 import com.ironhold.core.render.TowerShapeRenderer;
 import com.ironhold.game.model.PlacedTower;
@@ -53,6 +54,7 @@ public final class GameScreen extends ScreenAdapter {
     private final EnemyShapeRenderer enemyShapes;
     private final TowerShapeRenderer towerShapes;
     private final ProjectileRenderer projectileRenderer;
+    private final HitEffectRenderer hitEffectRenderer;
     private final FxBloomPipeline bloomPipeline;
     private final StageHud hud;
     private final GameplayUiFxReactor eventUiFx;
@@ -78,6 +80,7 @@ public final class GameScreen extends ScreenAdapter {
         this.enemyShapes = new EnemyShapeRenderer(game.getEnemiesById());
         this.towerShapes = new TowerShapeRenderer();
         this.projectileRenderer = new ProjectileRenderer();
+        this.hitEffectRenderer = new HitEffectRenderer();
         this.bloomPipeline = new FxBloomPipeline(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
@@ -227,6 +230,7 @@ public final class GameScreen extends ScreenAdapter {
         enemyShapes.dispose();
         towerShapes.dispose();
         projectileRenderer.dispose();
+        hitEffectRenderer.dispose();
         bloomPipeline.dispose();
         batch.dispose();
         eventUiFx.dispose();
@@ -245,8 +249,10 @@ public final class GameScreen extends ScreenAdapter {
     // ══════════════════════════════════════════════════════════════════════
 
     private void drawFxLayer(GameRuntimeView view) {
-        // Projectiles — orange circles
+        // Projectiles — oriented energy beams with fading trail
         projectileRenderer.render(batch, camera.combined, view.getActiveProjectiles());
+        // Impact bursts — drawn after projectiles so the sparkles read above the beams
+        hitEffectRenderer.render(batch, camera.combined, view.getHitEffects());
         drawFloatingRewardTexts();
     }
 
