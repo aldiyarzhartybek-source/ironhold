@@ -6,6 +6,7 @@ import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.LightningEffect;
+import com.ironhold.game.model.MortarExplosionEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
 import com.ironhold.level.RuntimeLevelState;
@@ -25,6 +26,7 @@ public final class GameRuntimeView {
     private final List<ActiveProjectile> activeProjectiles;
     private final List<HitEffect> hitEffects;
     private final List<LightningEffect> lightningEffects;
+    private final List<MortarExplosionEffect> mortarExplosions;
     private final int gold;
     private final GameFacade.BuildPlacementResult lastBuildPlacementResult;
     private final int totalKilledEnemies;
@@ -53,6 +55,7 @@ public final class GameRuntimeView {
         List<ActiveProjectile> activeProjectiles,
         List<HitEffect> hitEffects,
         List<LightningEffect> lightningEffects,
+        List<MortarExplosionEffect> mortarExplosions,
         int gold,
         GameFacade.BuildPlacementResult lastBuildPlacementResult,
         int totalKilledEnemies,
@@ -80,6 +83,7 @@ public final class GameRuntimeView {
         this.activeProjectiles = List.copyOf(Objects.requireNonNull(activeProjectiles, "activeProjectiles"));
         this.hitEffects = List.copyOf(Objects.requireNonNull(hitEffects, "hitEffects"));
         this.lightningEffects = List.copyOf(Objects.requireNonNull(lightningEffects, "lightningEffects"));
+        this.mortarExplosions = List.copyOf(Objects.requireNonNull(mortarExplosions, "mortarExplosions"));
         this.gold = gold;
         this.lastBuildPlacementResult = Objects.requireNonNull(lastBuildPlacementResult, "lastBuildPlacementResult");
         this.totalKilledEnemies = totalKilledEnemies;
@@ -147,6 +151,10 @@ public final class GameRuntimeView {
 
     public List<LightningEffect> getLightningEffects() {
         return lightningEffects;
+    }
+
+    public List<MortarExplosionEffect> getMortarExplosions() {
+        return mortarExplosions;
     }
 
     public GameFacade.BuildPlacementResult getLastBuildPlacementResult() {
@@ -221,6 +229,7 @@ public final class GameRuntimeView {
         private List<ActiveProjectile> activeProjectiles;
         private List<HitEffect> hitEffects;
         private List<LightningEffect> lightningEffects;
+        private List<MortarExplosionEffect> mortarExplosions;
         private int gold;
         private GameFacade.BuildPlacementResult lastBuildPlacementResult;
         private int totalKilledEnemies;
@@ -260,6 +269,7 @@ public final class GameRuntimeView {
             activeProjectiles = state.getActiveProjectiles();
             hitEffects = state.getHitEffects();
             lightningEffects = state.getLightningEffects();
+            mortarExplosions = state.getMortarExplosions();
             totalKilledEnemies = state.getSessionStats().getKills();
             lastAwardedGold = state.getLastAwardedGold();
             totalGoldSpent = state.getSessionStats().getGoldSpent();
@@ -306,6 +316,7 @@ public final class GameRuntimeView {
             Objects.requireNonNull(activeProjectiles, "activeProjectiles");
             Objects.requireNonNull(hitEffects, "hitEffects");
             Objects.requireNonNull(lightningEffects, "lightningEffects");
+            Objects.requireNonNull(mortarExplosions, "mortarExplosions");
             Objects.requireNonNull(lastBuildPlacementResult, "lastBuildPlacementResult");
             Objects.requireNonNull(enemyPath, "enemyPath");
             Objects.requireNonNull(availableTowers, "availableTowers");
@@ -320,6 +331,7 @@ public final class GameRuntimeView {
                 activeProjectiles,
                 hitEffects,
                 lightningEffects,
+                mortarExplosions,
                 gold,
                 lastBuildPlacementResult,
                 totalKilledEnemies,
