@@ -9,12 +9,12 @@
       "targeting": "nearest"
     },
     {
-      "id": "sniper_tower",
-      "cost": 120,
-      "range": 5.2,
-      "damage": 35,
-      "fireRateSec": 1.8,
-      "targeting": "first"
+      "id": "lightning_tower",
+      "cost": 150,
+      "range": 3.5,
+      "damage": 20,
+      "fireRateSec": 0.9,
+      "targeting": "nearest"
     }
   ]
 }

@@ -47,6 +47,13 @@ public final class GameTheme {
     /** Trail tint — fades from the halo colour down to transparent. */
     public static final Color PROJECTILE_TRAIL    = withAlpha(hex("8FF5E8"), 0.55f);
 
+    // --- Lightning tower ---
+    /** Bright neon-violet diamond outline and core. */
+    public static final Color LIGHTNING_OUTLINE = hex("CC44FF");
+    public static final Color LIGHTNING_CORE    = new Color(0.85f, 0.95f, 1.00f, 1.00f);
+    /** Wide outer glow drawn around the bolt. */
+    public static final Color LIGHTNING_GLOW    = new Color(0.55f, 0.20f, 1.00f, 0.55f);
+
     // --- Hit effect (radial burst on impact) ---
     public static final Color HIT_BURST_LINE = withAlpha(Color.WHITE, 0.9f);
     public static final Color HIT_BURST_RING = withAlpha(hex("8FF5E8"), 0.6f);

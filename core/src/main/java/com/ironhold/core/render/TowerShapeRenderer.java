@@ -42,8 +42,13 @@ public final class TowerShapeRenderer {
         shapes.begin(ShapeType.Filled);
 
         for (PlacedTower tower : towers) {
-            drawBase(tower.getX(), tower.getY());
-            drawCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
+            if ("lightning_tower".equals(tower.getTowerId())) {
+                drawDiamond(tower.getX(), tower.getY());
+                drawLightningCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
+            } else {
+                drawBase(tower.getX(), tower.getY());
+                drawCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
+            }
         }
 
         shapes.end();
@@ -85,6 +90,46 @@ public final class TowerShapeRenderer {
         // White hot centre (smaller, brighter at peak)
         shapes.setColor(blendAlpha(GameTheme.TOWER_CORE_HIGHLIGHT, intensity * intensity));
         shapes.circle(cx, cy, radius * 0.5f, 10);
+    }
+
+    // ── Lightning tower (rhombus / diamond) ────────────────────────────────
+
+    private void drawDiamond(float cx, float cy) {
+        float s    = GameTheme.Draw.TOWER_SIZE;
+        float half = s * 0.5f;
+        float t    = GameTheme.Draw.TOWER_OUTLINE_THICK;
+
+        // Outer violet diamond
+        shapes.setColor(GameTheme.LIGHTNING_OUTLINE);
+        drawFilledDiamond(cx, cy, half);
+
+        // Inner dark recess diamond
+        float inner = half - t;
+        shapes.setColor(GameTheme.SLOT_RECESS);
+        drawFilledDiamond(cx, cy, inner);
+    }
+
+    /** Filled axis-aligned rhombus (4-triangle fan from center). */
+    private void drawFilledDiamond(float cx, float cy, float half) {
+        // top-right
+        shapes.triangle(cx, cy, cx + half, cy, cx, cy + half);
+        // top-left
+        shapes.triangle(cx, cy, cx - half, cy, cx, cy + half);
+        // bottom-right
+        shapes.triangle(cx, cy, cx + half, cy, cx, cy - half);
+        // bottom-left
+        shapes.triangle(cx, cy, cx - half, cy, cx, cy - half);
+    }
+
+    private void drawLightningCore(float cx, float cy, float pulsePhaseSec) {
+        float sin = (float) Math.sin(pulsePhaseSec * PULSE_HZ * (Math.PI * 2.0));
+        float intensity = 0.775f + 0.225f * sin;
+        float radius = GameTheme.Draw.TOWER_CORE_RADIUS * intensity;
+
+        shapes.setColor(blendAlpha(GameTheme.LIGHTNING_GLOW, intensity * 0.8f));
+        shapes.circle(cx, cy, radius, 12);
+        shapes.setColor(blendAlpha(GameTheme.LIGHTNING_CORE, intensity));
+        shapes.circle(cx, cy, radius * 0.45f, 10);
     }
 
     // ── Geometry helpers ───────────────────────────────────────────────────
