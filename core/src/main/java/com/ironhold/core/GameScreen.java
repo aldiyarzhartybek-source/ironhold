@@ -30,6 +30,7 @@ import com.ironhold.core.render.EnemyShapeRenderer;
 import com.ironhold.core.render.GameplayMapRenderer;
 import com.ironhold.core.render.HitEffectRenderer;
 import com.ironhold.core.render.LightningRenderer;
+import com.ironhold.core.render.FlameConeRenderer;
 import com.ironhold.core.render.MortarExplosionRenderer;
 import com.ironhold.core.render.ProjectileRenderer;
 import com.ironhold.core.render.TowerShapeRenderer;
@@ -59,6 +60,7 @@ public final class GameScreen extends ScreenAdapter {
     private final HitEffectRenderer hitEffectRenderer;
     private final LightningRenderer lightningRenderer;
     private final MortarExplosionRenderer mortarExplosionRenderer;
+    private final FlameConeRenderer flameConeRenderer;
     private final FxBloomPipeline bloomPipeline;
     private final StageHud hud;
     private final GameplayUiFxReactor eventUiFx;
@@ -89,6 +91,7 @@ public final class GameScreen extends ScreenAdapter {
         this.hitEffectRenderer = new HitEffectRenderer();
         this.lightningRenderer = new LightningRenderer();
         this.mortarExplosionRenderer = new MortarExplosionRenderer();
+        this.flameConeRenderer = new FlameConeRenderer();
         this.bloomPipeline = new FxBloomPipeline(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
@@ -336,6 +339,7 @@ public final class GameScreen extends ScreenAdapter {
         hitEffectRenderer.dispose();
         lightningRenderer.dispose();
         mortarExplosionRenderer.dispose();
+        flameConeRenderer.dispose();
         bloomPipeline.dispose();
         batch.dispose();
         eventUiFx.dispose();
@@ -357,6 +361,7 @@ public final class GameScreen extends ScreenAdapter {
     private void drawFxLayer(GameRuntimeView view) {
         // Projectiles — oriented energy beams with fading trail
         projectileRenderer.render(batch, camera.combined, view.getActiveProjectiles());
+        flameConeRenderer.render(batch, camera.combined, view.getFlameConeEffects());
         // Impact bursts — drawn after projectiles so the sparkles read above the beams
         hitEffectRenderer.render(batch, camera.combined, view.getHitEffects());
         // Chain-lightning bolts (instant flash, very short TTL)
