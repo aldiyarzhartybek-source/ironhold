@@ -48,6 +48,9 @@ public final class TowerShapeRenderer {
             } else if ("mortar_tower".equals(tower.getTowerId())) {
                 drawMortarHex(tower.getX(), tower.getY());
                 drawMortarCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
+            } else if ("flamethrower_tower".equals(tower.getTowerId())) {
+                drawFlameTriangle(tower.getX(), tower.getY());
+                drawFlameCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
             } else {
                 drawBase(tower.getX(), tower.getY());
                 drawCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
@@ -93,6 +96,38 @@ public final class TowerShapeRenderer {
         // White hot centre (smaller, brighter at peak)
         shapes.setColor(blendAlpha(GameTheme.TOWER_CORE_HIGHLIGHT, intensity * intensity));
         shapes.circle(cx, cy, radius * 0.5f, 10);
+    }
+
+    // ── Flamethrower (warning triangle, apex up) ───────────────────────────
+
+    private void drawFlameTriangle(float cx, float cy) {
+        float half = GameTheme.Draw.TOWER_SIZE * 0.5f;
+        float t = GameTheme.Draw.TOWER_OUTLINE_THICK;
+
+        shapes.setColor(GameTheme.FLAME_OUTLINE);
+        drawFilledTriangleUp(cx, cy, half);
+
+        shapes.setColor(GameTheme.SLOT_RECESS);
+        drawFilledTriangleUp(cx, cy, Math.max(4f, half - t));
+    }
+
+    /** Apex at top centre, base below — warning-sign orientation. */
+    private void drawFilledTriangleUp(float cx, float cy, float half) {
+        float topY = cy + half;
+        float baseY = cy - half;
+        shapes.triangle(cx, topY, cx - half, baseY, cx + half, baseY);
+    }
+
+    private void drawFlameCore(float cx, float cy, float pulsePhaseSec) {
+        float sin = (float) Math.sin(pulsePhaseSec * PULSE_HZ * (Math.PI * 2.0));
+        float intensity = 0.775f + 0.225f * sin;
+        float radius = GameTheme.Draw.TOWER_CORE_RADIUS * 1.2f * intensity;
+        float coreY = cy - GameTheme.Draw.TOWER_SIZE * 0.08f;
+
+        shapes.setColor(blendAlpha(GameTheme.FLAME_CORE_GLOW, intensity * 0.85f));
+        shapes.circle(cx, coreY, radius, 12);
+        shapes.setColor(blendAlpha(GameTheme.FLAME_CORE, intensity));
+        shapes.circle(cx, coreY, radius * 0.5f, 10);
     }
 
     // ── Mortar tower (large hexagon) ───────────────────────────────────────
