@@ -13,7 +13,6 @@ public final class GameTheme {
     public static final Color BACKGROUND   = hex("252638");
     public static final Color PATH_TEAL    = hex("1ECFBF");
     public static final Color ENEMY_ACCENT = hex("F77F2A");
-    public static final Color TOWER_BLUE   = hex("4A7CFF");
     public static final Color GOLD         = hex("F5C542");
     public static final Color DANGER_RED   = hex("E84855");
 
@@ -36,12 +35,23 @@ public final class GameTheme {
 
     // --- Tower ---
     public static final Color TOWER_OUTLINE = Color.WHITE;
+    /** Pulsing core in the middle of the base — alive feeling between shots. */
+    public static final Color TOWER_CORE_BASE      = withAlpha(hex("1ECFBF"), 0.95f);
+    public static final Color TOWER_CORE_HIGHLIGHT = withAlpha(Color.WHITE, 0.85f);
 
     // --- Enemy ---
     public static final Color ENEMY_OUTLINE = withAlpha(Color.WHITE, 0.90f);
+    // --- Projectile (energy beam + trail) ---
+    /** Hot bright core of the beam. */
+    public static final Color PROJECTILE_CORE     = Color.WHITE;
+    /** Outer halo around the beam core — same teal as the path. */
+    public static final Color PROJECTILE_HALO     = withAlpha(hex("8FF5E8"), 0.85f);
+    /** Trail tint — fades from the halo colour down to transparent. */
+    public static final Color PROJECTILE_TRAIL    = withAlpha(hex("8FF5E8"), 0.55f);
 
-    // --- Projectile (orange circle) ---
-    public static final Color PROJECTILE = withAlpha(GOLD, 1f);
+    // --- Hit effect (radial burst on impact) ---
+    public static final Color HIT_BURST_LINE = withAlpha(Color.WHITE, 0.9f);
+    public static final Color HIT_BURST_RING = withAlpha(hex("8FF5E8"), 0.6f);
 
     // --- Backdrop (GameScreen drawVisualBackdrop) ---
     public static final Color BACKDROP_BASE     = withAlpha(BACKGROUND, 1f);
@@ -98,9 +108,31 @@ public final class GameTheme {
         public static final float TOWER_OUTLINE_THICK = 4.5f;
         public static final float TOWER_CORNER_R      = 5f;
 
+        /** Pulsing core radius (peak) drawn at the tower centre. */
+        public static final float TOWER_CORE_RADIUS   = 3.5f;
+
+        // Projectile (energy beam)
+        /** Length of the bright core of the beam along its direction of travel. */
+        public static final float PROJECTILE_BEAM_LEN = 10f;
+        /** Half-width of the beam perpendicular to its travel direction. */
+        public static final float PROJECTILE_BEAM_HW  = 2f;
+        /** How many ghost copies fade out behind the beam. */
+        public static final int   PROJECTILE_TRAIL_STEPS = 4;
+        /** Pixel spacing between successive trail copies. */
+        public static final float PROJECTILE_TRAIL_STEP_PX = 5f;
+
+        // Hit effect (radial burst)
+        public static final int   HIT_BURST_SPOKES   = 8;
+        public static final float HIT_BURST_RADIUS_START = 2f;
+        public static final float HIT_BURST_RADIUS_END   = 7f;
+        public static final float HIT_BURST_LINE_LEN     = 3f;
+        public static final float HIT_BURST_LINE_THICK   = 1.2f;
+
         // Enemy
         public static final float ENEMY_OUTLINE_THICK = 2.5f;
         public static final float ENEMY_RADIUS         = 10f;
+        /** Peak scale multiplier applied to an enemy at the start of a hit flash. */
+        public static final float ENEMY_HIT_FLASH_SCALE = 1.22f;
 
         // Markers
         public static final float SPAWN_MARKER_RADIUS = 16f;

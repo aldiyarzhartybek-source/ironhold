@@ -16,6 +16,9 @@ public final class PlacedTower {
     private float cooldownSec;
     private String lockedTargetRuntimeId;
 
+    /** Free-running accumulator that drives the idle core pulse. Wraps modulo PI*2. */
+    private float pulsePhaseSec;
+
     public PlacedTower(
         String slotId,
         String towerId,
@@ -84,5 +87,16 @@ public final class PlacedTower {
 
     public void setLockedTargetRuntimeId(String lockedTargetRuntimeId) {
         this.lockedTargetRuntimeId = lockedTargetRuntimeId;
+    }
+
+    // ── Visual state ────────────────────────────────────────────────────────
+
+    public float getPulsePhaseSec() {
+        return pulsePhaseSec;
+    }
+
+    /** Advances the free-running pulse clock; wraps to keep the value bounded. */
+    public void tickPulse(float deltaSec) {
+        this.pulsePhaseSec = (this.pulsePhaseSec + deltaSec) % (float) (Math.PI * 2.0);
     }
 }

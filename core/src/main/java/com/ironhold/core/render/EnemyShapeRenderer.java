@@ -46,23 +46,34 @@ public final class EnemyShapeRenderer {
             float radius   = template.getVisualRadius();
             float rotation = facingAngle(path, enemy);
 
+            // ── Hit-flash visual feedback (driven by ActiveEnemy.hitFlashTtl) ──
+            // The flash is self-contained inside the enemy entity: no coupling to
+            // the world hit-effect list, no shared mutable state with other systems.
+            // At trigger (progress=1.0) the enemy is scaled up and tinted toward
+            // pure white; the effect eases out to nothing by progress=0.
+            float flashIntensity = 0f;
+            if (enemy.getHitFlashMaxSec() > 0f) {
+                float p = enemy.getHitFlashTtlSec() / enemy.getHitFlashMaxSec();
+                // ease-out cubic — sharp pop at impact, gentle return to rest
+                flashIntensity = p * p * p;
+            }
+            float scaleMul = 1f + (GameTheme.Draw.ENEMY_HIT_FLASH_SCALE - 1f) * flashIntensity;
+            float drawRadius = radius * scaleMul;
+
             // 1. White outline — slightly larger shape drawn first
-            float outlineRadius = radius + GameTheme.Draw.ENEMY_OUTLINE_THICK;
+            float outlineRadius = drawRadius + GameTheme.Draw.ENEMY_OUTLINE_THICK;
             drawShape(template.getVisualShape(), enemy.getX(), enemy.getY(),
                 outlineRadius, rotation, GameTheme.ENEMY_OUTLINE);
 
-            // 2. Normal colour fill on top
+            // 2. Fill — blended toward white at the flash peak
+            Color fill = blendTowardWhite(template.getFillColor(), flashIntensity);
             drawShape(template.getVisualShape(), enemy.getX(), enemy.getY(),
-                radius, rotation, template.getFillColor());
+                drawRadius, rotation, fill);
         }
 
         shapes.end();
         batch.begin();
         batch.setColor(GameTheme.TINT_WHITE);
-    }
-
-    public float getVisualRadius(ActiveEnemy enemy) {
-        return resolveTemplate(enemy.getEnemyId()).getVisualRadius();
     }
 
     public void dispose() {
@@ -154,6 +165,21 @@ public final class EnemyShapeRenderer {
             float y1 = centerY + (float) Math.sin(a1) * radius;
             shapes.triangle(centerX, centerY, x0, y0, x1, y1);
         }
+    }
+
+    /**
+     * Returns {@code source} linearly interpolated toward pure white by {@code t ∈ [0,1]}.
+     * Alpha is preserved. Used by the hit-flash effect to "wash out" the enemy at impact.
+     */
+    private static Color blendTowardWhite(Color source, float t) {
+        if (t <= 0f) return source;
+        if (t > 1f)  t = 1f;
+        float inv = 1f - t;
+        Color out = new Color(source);
+        out.r = source.r * inv + t;   // white.r = 1
+        out.g = source.g * inv + t;   // white.g = 1
+        out.b = source.b * inv + t;   // white.b = 1
+        return out;
     }
 
     private static float facingAngle(List<Vector2> path, ActiveEnemy enemy) {

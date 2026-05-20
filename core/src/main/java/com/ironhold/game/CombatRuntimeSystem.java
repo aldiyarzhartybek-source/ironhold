@@ -66,14 +66,24 @@ public final class CombatRuntimeSystem {
         }
     }
 
+    /** How long the enemy hit-flash (white tint + scale pulse) lasts. */
+    private static final float HIT_FLASH_DURATION_SEC = 0.18f;
+
     private void updateTowerCombat(GameRuntimeState state, float deltaSec) {
-        if (deltaSec <= 0f || state.getPlacedTowers().isEmpty() || state.getActiveEnemies().isEmpty()) {
+        if (deltaSec <= 0f || state.getPlacedTowers().isEmpty()) {
+            for (PlacedTower tower : state.getPlacedTowers()) {
+                tower.tickPulse(deltaSec);
+            }
             return;
         }
+        boolean hasTargets = !state.getActiveEnemies().isEmpty();
         for (PlacedTower tower : state.getPlacedTowers()) {
+            tower.tickPulse(deltaSec);
+
             float cooldown = Math.max(0f, tower.getCooldownSec() - deltaSec);
             tower.setCooldownSec(cooldown);
-            if (cooldown > 0f) {
+
+            if (!hasTargets || cooldown > 0f) {
                 continue;
             }
             ActiveEnemy target = pickTargetForTower(state, tower);
@@ -98,6 +108,7 @@ public final class CombatRuntimeSystem {
         }
         List<ActiveProjectile> finishedProjectiles = new ArrayList<>();
         List<ActiveEnemy> killedEnemies = new ArrayList<>();
+        List<String> hitEffectSpawnedFor = new ArrayList<>();
 
         for (ActiveProjectile projectile : state.getActiveProjectiles()) {
             ActiveEnemy target = findActiveEnemyByRuntimeId(state, projectile.getTargetEnemyRuntimeId());
@@ -112,8 +123,17 @@ public final class CombatRuntimeSystem {
             float step = projectile.getSpeed() * deltaSec;
             if (distance <= PROJECTILE_HIT_RADIUS || step >= distance) {
                 target.setCurrentHp(target.getCurrentHp() - projectile.getDamage());
-                state.getHitEffects().add(new HitEffect(
-                    target.getX(), target.getY(), 0.14f));
+                // Self-contained per-enemy visual feedback (white flash + scale pulse).
+                // Lives on ActiveEnemy so EnemyShapeRenderer can read it directly
+                // without coupling to the world hit-effect list.
+                target.triggerHitFlash(HIT_FLASH_DURATION_SEC);
+                // Spawn at most one burst per enemy per tick — multiple projectiles
+                // landing the same frame (e.g. two towers) must not double the effect.
+                if (!hitEffectSpawnedFor.contains(target.getRuntimeId())) {
+                    state.getHitEffects().add(new HitEffect(
+                        target.getX(), target.getY(), 0.28f));
+                    hitEffectSpawnedFor.add(target.getRuntimeId());
+                }
                 finishedProjectiles.add(projectile);
                 if (target.getCurrentHp() <= 0 && !killedEnemies.contains(target)) {
                     killedEnemies.add(target);
@@ -140,7 +160,15 @@ public final class CombatRuntimeSystem {
     }
 
     private void updateHitEffects(GameRuntimeState state, float deltaSec) {
-        if (deltaSec <= 0f || state.getHitEffects().isEmpty()) {
+        if (deltaSec <= 0f) {
+            return;
+        }
+        // Tick per-enemy hit-flash timers — kept here (rather than inside enemy
+        // movement) so all visual feedback timers advance from one place.
+        for (ActiveEnemy enemy : state.getActiveEnemies()) {
+            enemy.tickHitFlash(deltaSec);
+        }
+        if (state.getHitEffects().isEmpty()) {
             return;
         }
         List<HitEffect> expired = new ArrayList<>();
