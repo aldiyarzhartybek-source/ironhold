@@ -47,6 +47,15 @@ public final class GameTheme {
     /** Trail tint — fades from the halo colour down to transparent. */
     public static final Color PROJECTILE_TRAIL    = withAlpha(hex("8FF5E8"), 0.55f);
 
+    // --- Mortar tower ---
+    public static final Color MORTAR_OUTLINE   = Color.WHITE;
+    public static final Color MORTAR_CORE      = hex("8B1538");
+    public static final Color MORTAR_CORE_GLOW = new Color(0.55f, 0.12f, 0.22f, 0.9f);
+    public static final Color MORTAR_SHELL     = new Color(0.70f, 0.18f, 0.22f, 1f);
+    public static final Color MORTAR_SHELL_GLOW = new Color(0.90f, 0.35f, 0.25f, 0.45f);
+    public static final Color MORTAR_BLAST_RING = new Color(1.00f, 0.45f, 0.20f, 0.55f);
+    public static final Color MORTAR_BLAST_CORE = new Color(0.04f, 0.04f, 0.13f, 0.9f);
+
     // --- Lightning tower ---
     /** Bright neon-violet diamond outline and core. */
     public static final Color LIGHTNING_OUTLINE = hex("CC44FF");
@@ -114,6 +123,11 @@ public final class GameTheme {
 
         /** Pulsing core radius (peak) drawn at the tower centre. */
         public static final float TOWER_CORE_RADIUS   = 3.5f;
+        /** Mortar hexagon is drawn slightly larger than the Dart square. */
+        public static final float MORTAR_TOWER_SCALE  = 1.14f;
+
+        // Mortar shell + blast
+        public static final float MORTAR_SHELL_RADIUS = 9f;
 
         // Projectile (energy beam)
         /** Length of the bright core of the beam along its direction of travel. */

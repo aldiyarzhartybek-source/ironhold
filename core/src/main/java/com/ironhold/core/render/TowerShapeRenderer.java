@@ -45,6 +45,9 @@ public final class TowerShapeRenderer {
             if ("lightning_tower".equals(tower.getTowerId())) {
                 drawDiamond(tower.getX(), tower.getY());
                 drawLightningCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
+            } else if ("mortar_tower".equals(tower.getTowerId())) {
+                drawMortarHex(tower.getX(), tower.getY());
+                drawMortarCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
             } else {
                 drawBase(tower.getX(), tower.getY());
                 drawCore(tower.getX(), tower.getY(), tower.getPulsePhaseSec());
@@ -90,6 +93,40 @@ public final class TowerShapeRenderer {
         // White hot centre (smaller, brighter at peak)
         shapes.setColor(blendAlpha(GameTheme.TOWER_CORE_HIGHLIGHT, intensity * intensity));
         shapes.circle(cx, cy, radius * 0.5f, 10);
+    }
+
+    // ── Mortar tower (large hexagon) ───────────────────────────────────────
+
+    private void drawMortarHex(float cx, float cy) {
+        float half = GameTheme.Draw.TOWER_SIZE * 0.5f * GameTheme.Draw.MORTAR_TOWER_SCALE;
+        float t = GameTheme.Draw.TOWER_OUTLINE_THICK + 0.5f;
+
+        shapes.setColor(GameTheme.MORTAR_OUTLINE);
+        drawFilledHexagon(cx, cy, half);
+
+        shapes.setColor(GameTheme.SLOT_RECESS);
+        drawFilledHexagon(cx, cy, Math.max(4f, half - t));
+    }
+
+    private void drawMortarCore(float cx, float cy, float pulsePhaseSec) {
+        float sin = (float) Math.sin(pulsePhaseSec * PULSE_HZ * (Math.PI * 2.0));
+        float intensity = 0.775f + 0.225f * sin;
+        float radius = GameTheme.Draw.TOWER_CORE_RADIUS * 1.35f * intensity;
+
+        shapes.setColor(blendAlpha(GameTheme.MORTAR_CORE_GLOW, intensity * 0.85f));
+        shapes.circle(cx, cy, radius, 12);
+        shapes.setColor(blendAlpha(GameTheme.MORTAR_CORE, intensity));
+        shapes.circle(cx, cy, radius * 0.5f, 10);
+    }
+
+    private void drawFilledHexagon(float cx, float cy, float r) {
+        for (int i = 0; i < 6; i++) {
+            float a0 = (float) (Math.PI / 6.0 + i * Math.PI / 3.0);
+            float a1 = (float) (Math.PI / 6.0 + (i + 1) * Math.PI / 3.0);
+            shapes.triangle(cx, cy,
+                cx + (float) Math.cos(a0) * r, cy + (float) Math.sin(a0) * r,
+                cx + (float) Math.cos(a1) * r, cy + (float) Math.sin(a1) * r);
+        }
     }
 
     // ── Lightning tower (rhombus / diamond) ────────────────────────────────

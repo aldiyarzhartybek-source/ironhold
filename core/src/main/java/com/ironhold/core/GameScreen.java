@@ -30,6 +30,7 @@ import com.ironhold.core.render.EnemyShapeRenderer;
 import com.ironhold.core.render.GameplayMapRenderer;
 import com.ironhold.core.render.HitEffectRenderer;
 import com.ironhold.core.render.LightningRenderer;
+import com.ironhold.core.render.MortarExplosionRenderer;
 import com.ironhold.core.render.ProjectileRenderer;
 import com.ironhold.core.render.TowerShapeRenderer;
 import com.ironhold.game.screen.ScreenId;
@@ -57,6 +58,7 @@ public final class GameScreen extends ScreenAdapter {
     private final ProjectileRenderer projectileRenderer;
     private final HitEffectRenderer hitEffectRenderer;
     private final LightningRenderer lightningRenderer;
+    private final MortarExplosionRenderer mortarExplosionRenderer;
     private final FxBloomPipeline bloomPipeline;
     private final StageHud hud;
     private final GameplayUiFxReactor eventUiFx;
@@ -86,6 +88,7 @@ public final class GameScreen extends ScreenAdapter {
         this.projectileRenderer = new ProjectileRenderer();
         this.hitEffectRenderer = new HitEffectRenderer();
         this.lightningRenderer = new LightningRenderer();
+        this.mortarExplosionRenderer = new MortarExplosionRenderer();
         this.bloomPipeline = new FxBloomPipeline(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.hud = new StageHud(font, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.eventUiFx = new GameplayUiFxReactor(game.getEventBus());
@@ -332,6 +335,7 @@ public final class GameScreen extends ScreenAdapter {
         projectileRenderer.dispose();
         hitEffectRenderer.dispose();
         lightningRenderer.dispose();
+        mortarExplosionRenderer.dispose();
         bloomPipeline.dispose();
         batch.dispose();
         eventUiFx.dispose();
@@ -357,6 +361,7 @@ public final class GameScreen extends ScreenAdapter {
         hitEffectRenderer.render(batch, camera.combined, view.getHitEffects());
         // Chain-lightning bolts (instant flash, very short TTL)
         lightningRenderer.render(batch, camera.combined, view.getLightningEffects());
+        mortarExplosionRenderer.render(batch, camera.combined, view.getMortarExplosions());
         drawFloatingRewardTexts();
     }
 

@@ -12,7 +12,7 @@ import java.util.Objects;
  * In-game HUD.
  *
  * <p>Production row: Lives + selected tower (left) | Wave (centre) | Gold / Time / Speed (right).
- * Keys {@code 1}–{@code 2} select build tower (order in {@code towers.json}).
+ * Keys {@code 1}–{@code 3} select build tower (order in {@code towers.json}).
  * <p>Debug block: shown only when {@code debugMode=true} — game state metrics,
  * event counters, spawn timers.
  */
@@ -110,7 +110,7 @@ public final class StageHud {
     private void drawSelectedTower(SpriteBatch batch, GameRuntimeView view, float x, float y) {
         String selectedId = view.getSelectedTowerId();
         if (selectedId == null) {
-            font.draw(batch, "Tower: —  (1–2 to select)", x, y);
+            font.draw(batch, "Tower: —  (1–3 to select)", x, y);
             return;
         }
         int index = 0;
@@ -135,6 +135,7 @@ public final class StageHud {
 
     private static String towerDisplayName(String id) {
         if ("basic_tower".equals(id)) return "Dart";
+        if ("mortar_tower".equals(id)) return "Mortar";
         if ("lightning_tower".equals(id)) return "Lightning";
         return id;
     }

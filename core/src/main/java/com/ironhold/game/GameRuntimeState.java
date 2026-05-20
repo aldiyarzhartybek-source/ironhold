@@ -6,6 +6,7 @@ import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.LightningEffect;
+import com.ironhold.game.model.MortarExplosionEffect;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.level.RuntimeLevelState;
 
@@ -24,6 +25,7 @@ public final class GameRuntimeState {
     private final List<ActiveProjectile> activeProjectiles;
     private final List<HitEffect> hitEffects;
     private final List<LightningEffect> lightningEffects;
+    private final List<MortarExplosionEffect> mortarExplosions;
     private final List<Vector2> enemyPath;
     private String selectedTowerId;
     private int nextEnemyInstanceId;
@@ -45,6 +47,7 @@ public final class GameRuntimeState {
         this.activeProjectiles = new ArrayList<>();
         this.hitEffects = new ArrayList<>();
         this.lightningEffects = new ArrayList<>();
+        this.mortarExplosions = new ArrayList<>();
         this.enemyPath = List.copyOf(Objects.requireNonNull(enemyPath, "enemyPath"));
         this.selectedTowerId = selectedTowerId;
         this.nextEnemyInstanceId = 1;
@@ -60,6 +63,7 @@ public final class GameRuntimeState {
         activeProjectiles.clear();
         hitEffects.clear();
         lightningEffects.clear();
+        mortarExplosions.clear();
         buildSlots.clear();
         buildSlots.addAll(initialBuildSlots);
         nextEnemyInstanceId = 1;
@@ -99,6 +103,10 @@ public final class GameRuntimeState {
 
     public List<LightningEffect> getLightningEffects() {
         return lightningEffects;
+    }
+
+    public List<MortarExplosionEffect> getMortarExplosions() {
+        return mortarExplosions;
     }
 
     public List<Vector2> getEnemyPath() {

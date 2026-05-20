@@ -9,7 +9,9 @@ import com.ironhold.game.model.ActiveProjectile;
 import com.ironhold.game.model.EconomyState;
 import com.ironhold.game.model.HitEffect;
 import com.ironhold.game.model.LightningEffect;
+import com.ironhold.game.model.MortarExplosionEffect;
 import com.ironhold.game.model.PlacedTower;
+import com.ironhold.game.model.ProjectileKind;
 import com.ironhold.game.model.TowerTargeting;
 
 import java.util.ArrayList;
@@ -25,7 +27,12 @@ public final class CombatRuntimeSystem {
     private static final float PROJECTILE_SPEED = 320f;
     private static final float PROJECTILE_HIT_RADIUS = 12f;
 
+    private static final String MORTAR_TOWER_ID = "mortar_tower";
     private static final String LIGHTNING_TOWER_ID = "lightning_tower";
+    private static final float MORTAR_SHELL_SPEED = 95f;
+    private static final float MORTAR_SHELL_HIT_RADIUS = 14f;
+    private static final float MORTAR_SPLASH_RADIUS = 52f;
+    private static final float MORTAR_EXPLOSION_TTL_SEC = 0.28f;
     /** Max enemies in one chain. */
     private static final int LIGHTNING_CHAIN_MAX = 3;
     /** How long the visual bolt stays on screen (seconds). */
@@ -57,6 +64,7 @@ public final class CombatRuntimeSystem {
         updateTowerCombat(state, safeDeltaSec);
         updateHitEffects(state, safeDeltaSec);
         updateLightningEffects(state, safeDeltaSec);
+        updateMortarExplosions(state, safeDeltaSec);
     }
 
     private void updateEnemyMovement(GameRuntimeState state, float deltaSec) {
@@ -100,6 +108,8 @@ public final class CombatRuntimeSystem {
 
             if (LIGHTNING_TOWER_ID.equals(tower.getTowerId())) {
                 fireLightning(state, tower);
+            } else if (MORTAR_TOWER_ID.equals(tower.getTowerId())) {
+                fireMortar(state, tower);
             } else {
                 fireProjectile(state, tower);
             }
@@ -110,13 +120,29 @@ public final class CombatRuntimeSystem {
         ActiveEnemy target = pickTargetForTower(state, tower);
         if (target == null) return;
         tower.setCooldownSec(tower.getFireRateSec());
-        state.getActiveProjectiles().add(new ActiveProjectile(
+        state.getActiveProjectiles().add(ActiveProjectile.beam(
             "projectile-" + state.getNextProjectileInstanceId(),
             target.getRuntimeId(),
             tower.getDamage(),
             tower.getX(),
             tower.getY(),
             PROJECTILE_SPEED
+        ));
+    }
+
+    private void fireMortar(GameRuntimeState state, PlacedTower tower) {
+        ActiveEnemy target = pickTargetForTower(state, tower);
+        if (target == null) return;
+        tower.setCooldownSec(tower.getFireRateSec());
+        state.getActiveProjectiles().add(ActiveProjectile.mortarShell(
+            "mortar-" + state.getNextProjectileInstanceId(),
+            tower.getDamage(),
+            tower.getX(),
+            tower.getY(),
+            target.getX(),
+            target.getY(),
+            MORTAR_SPLASH_RADIUS,
+            MORTAR_SHELL_SPEED
         ));
     }
 
@@ -231,6 +257,66 @@ public final class CombatRuntimeSystem {
         return new LightningEffect(wp, LIGHTNING_FLASH_SEC);
     }
 
+    private void updateMortarShell(
+        GameRuntimeState state,
+        ActiveProjectile shell,
+        float deltaSec,
+        List<ActiveProjectile> finishedProjectiles,
+        List<ActiveEnemy> killedEnemies
+    ) {
+        float dx = shell.getLandingX() - shell.getX();
+        float dy = shell.getLandingY() - shell.getY();
+        float distance = (float) Math.sqrt(dx * dx + dy * dy);
+        float step = shell.getSpeed() * deltaSec;
+        if (distance <= MORTAR_SHELL_HIT_RADIUS || step >= distance) {
+            detonateMortar(state, shell, killedEnemies);
+            finishedProjectiles.add(shell);
+            return;
+        }
+        float ratio = step / distance;
+        shell.setPosition(
+            shell.getX() + dx * ratio,
+            shell.getY() + dy * ratio
+        );
+    }
+
+    private void detonateMortar(
+        GameRuntimeState state,
+        ActiveProjectile shell,
+        List<ActiveEnemy> killedEnemies
+    ) {
+        float lx = shell.getLandingX();
+        float ly = shell.getLandingY();
+        float radius = shell.getSplashRadius();
+        float radiusSq = radius * radius;
+
+        state.getMortarExplosions().add(new MortarExplosionEffect(
+            lx, ly, radius, MORTAR_EXPLOSION_TTL_SEC));
+
+        for (ActiveEnemy enemy : state.getActiveEnemies()) {
+            float edx = enemy.getX() - lx;
+            float edy = enemy.getY() - ly;
+            if (edx * edx + edy * edy > radiusSq) {
+                continue;
+            }
+            enemy.setCurrentHp(enemy.getCurrentHp() - shell.getDamage());
+            enemy.triggerHitFlash(HIT_FLASH_DURATION_SEC);
+            if (enemy.getCurrentHp() <= 0 && !killedEnemies.contains(enemy)) {
+                killedEnemies.add(enemy);
+            }
+        }
+    }
+
+    private void updateMortarExplosions(GameRuntimeState state, float deltaSec) {
+        if (deltaSec <= 0f || state.getMortarExplosions().isEmpty()) return;
+        List<MortarExplosionEffect> expired = new ArrayList<>();
+        for (MortarExplosionEffect fx : state.getMortarExplosions()) {
+            fx.setTtlSec(fx.getTtlSec() - deltaSec);
+            if (fx.getTtlSec() <= 0f) expired.add(fx);
+        }
+        if (!expired.isEmpty()) state.getMortarExplosions().removeAll(expired);
+    }
+
     private void updateLightningEffects(GameRuntimeState state, float deltaSec) {
         if (deltaSec <= 0f || state.getLightningEffects().isEmpty()) return;
         List<LightningEffect> expired = new ArrayList<>();
@@ -250,6 +336,11 @@ public final class CombatRuntimeSystem {
         List<String> hitEffectSpawnedFor = new ArrayList<>();
 
         for (ActiveProjectile projectile : state.getActiveProjectiles()) {
+            if (projectile.getKind() == ProjectileKind.MORTAR_SHELL) {
+                updateMortarShell(state, projectile, deltaSec, finishedProjectiles, killedEnemies);
+                continue;
+            }
+
             ActiveEnemy target = findActiveEnemyByRuntimeId(state, projectile.getTargetEnemyRuntimeId());
             if (target == null) {
                 finishedProjectiles.add(projectile);

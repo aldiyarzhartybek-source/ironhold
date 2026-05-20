@@ -9,6 +9,14 @@
       "targeting": "nearest"
     },
     {
+      "id": "mortar_tower",
+      "cost": 130,
+      "range": 4.5,
+      "damage": 28,
+      "fireRateSec": 2.2,
+      "targeting": "first"
+    },
+    {
       "id": "lightning_tower",
       "cost": 150,
       "range": 3.5,
