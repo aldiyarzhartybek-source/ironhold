@@ -73,6 +73,7 @@ public final class GameScreen extends ScreenAdapter {
     private final UiLayer pauseUi;
     private final BuildSlotPopup buildSlotPopup;
     private final TowerSellBar towerSellBar;
+    private final TowerTargetingControls towerTargetingControls;
     private final InputProcessor gameWorldInput;
     private boolean endOverlayVisible;
     private LevelStatus endOverlayStatus;
@@ -109,6 +110,7 @@ public final class GameScreen extends ScreenAdapter {
             Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.towerSellBar = new TowerSellBar(game, font,
             Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        this.towerTargetingControls = new TowerTargetingControls(game);
         this.pauseUi    = new UiLayer(assetService.getSkin());
         this.gameWorldInput = createGameWorldInput();
         this.endOverlayVisible = false;
@@ -176,6 +178,7 @@ public final class GameScreen extends ScreenAdapter {
         hud.render(batch, view, debugMode);
         if (!endOverlayVisible && !isPaused) {
             towerSellBar.syncSelection(camera);
+            towerTargetingControls.syncSelection(camera);
             buildSlotPopup.render(batch);
             towerSellBar.render(batch);
         }
@@ -191,8 +194,10 @@ public final class GameScreen extends ScreenAdapter {
         } else {
             waveStartControls.act(delta);
             gameSpeedControls.act(delta);
+            towerTargetingControls.act(delta);
             waveStartControls.draw();
             gameSpeedControls.draw();
+            towerTargetingControls.draw();
         }
     }
 
@@ -207,7 +212,8 @@ public final class GameScreen extends ScreenAdapter {
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
                 if (endOverlayVisible || button != Input.Buttons.LEFT) return false;
                 if (waveStartControls.getUi().getStage().hit(screenX, screenY, true) != null
-                    || gameSpeedControls.getUi().getStage().hit(screenX, screenY, true) != null) {
+                    || gameSpeedControls.getUi().getStage().hit(screenX, screenY, true) != null
+                    || towerTargetingControls.getUi().getStage().hit(screenX, screenY, true) != null) {
                     return false;
                 }
                 if (!isPaused && towerSellBar.isVisible()) {
@@ -231,16 +237,20 @@ public final class GameScreen extends ScreenAdapter {
                         buildSlotPopup.hide();
                         towerSellBar.show(
                             occupied.getSlotId(), occupied.getX(), occupied.getY(), camera);
+                        towerTargetingControls.show(
+                            occupied.getSlotId(), occupied.getX(), occupied.getY(), camera);
                         return true;
                     }
                     BuildSlot nearest = findNearestFreeSlot(wx, wy, 48f);
                     if (nearest != null) {
+                        towerTargetingControls.hide();
                         towerSellBar.hide();
                         lastTouchedSlotId = nearest.getSlotId();
                         buildSlotPopup.show(
                             nearest.getSlotId(), nearest.getX(), nearest.getY(), camera);
                         return true;
                     }
+                    towerTargetingControls.hide();
                     towerSellBar.hide();
                 }
 
@@ -282,6 +292,7 @@ public final class GameScreen extends ScreenAdapter {
         Gdx.input.setInputProcessor(new InputMultiplexer(
             waveStartControls.getUi().getStage(),
             gameSpeedControls.getUi().getStage(),
+            towerTargetingControls.getUi().getStage(),
             gameWorldInput
         ));
     }
@@ -374,6 +385,7 @@ public final class GameScreen extends ScreenAdapter {
         hud.resize(width, height);
         buildSlotPopup.resize(width, height);
         towerSellBar.resize(width, height);
+        towerTargetingControls.resize(width, height);
         waveStartControls.resize(width, height);
         gameSpeedControls.resize(width, height);
         endStateUi.resize(width, height);
@@ -397,6 +409,7 @@ public final class GameScreen extends ScreenAdapter {
         eventUiFx.dispose();
         buildSlotPopup.dispose();
         towerSellBar.dispose();
+        towerTargetingControls.dispose();
         waveStartControls.dispose();
         gameSpeedControls.dispose();
         endStateUi.dispose();

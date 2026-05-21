@@ -80,7 +80,6 @@ public final class StageHud {
         font.draw(batch, "Mode: "   + view.getGameMode(),                LEFT_X, topY - LINE_H);
         font.draw(batch, "Status: " + level.getStatus(),                 LEFT_X, topY - LINE_H * 2f);
         font.draw(batch, "Build: "  + view.getLastBuildPlacementResult(),LEFT_X, topY - LINE_H * 3f);
-        drawTowerTargeting(batch, view, topY - LINE_H * 4f);
 
         // Spawn / wave metrics
         font.draw(batch, "Spawn timer: "
@@ -139,17 +138,6 @@ public final class StageHud {
         if ("lightning_tower".equals(id)) return "Lightning";
         if ("flamethrower_tower".equals(id)) return "Flamethrower";
         return id;
-    }
-
-    private void drawTowerTargeting(SpriteBatch batch, GameRuntimeView view, float y) {
-        String selectedId = view.getSelectedTowerId();
-        if (selectedId == null) return;
-        for (var t : view.getAvailableTowers()) {
-            if (selectedId.equals(t.getId())) {
-                font.draw(batch, "Targeting: " + t.getTargetingPriority().name(), LEFT_X, y);
-                return;
-            }
-        }
     }
 
     private static String speedLabel(float timeScale) {

@@ -24,16 +24,12 @@ public final class TowerSellBar {
 
     private static final float BAR_W = 48f;
     private static final float WORLD_BELOW_OFFSET = 36f;
-    /** Extra screen-space drop so the control sits lower under the tower. */
     private static final float SCREEN_DROP = 12f;
     private static final float FONT_SCALE = 0.68f;
     private static final float PAD = 3f;
     private static final float X_GOLD_GAP = 2f;
-    /** Lifts cross + gold together (screen space). */
     private static final float CONTENT_LIFT = 18f;
-    /** Arm length along diagonal — elongated X. */
     private static final float X_ARM_LEN = 16f;
-    /** Arm thickness — slimmer than before. */
     private static final float X_ARM_THICK = 2.7f;
     private static final float X_HIT_PAD = 6f;
     private static final Color NEON_X = Color.valueOf("ff4757");

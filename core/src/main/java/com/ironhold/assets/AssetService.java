@@ -223,6 +223,25 @@ public final class AssetService {
         menuButtonStyle.overFontColor = null;
         skin.add("menu-button", menuButtonStyle);
 
+        Color targetingActive = Color.valueOf("00adb5");
+        Drawable targetActiveUp = borderedNinePatch(skin, "target-btn-active",
+            targetingActive, Color.WHITE, 2);
+        Drawable targetActiveOver = borderedNinePatch(skin, "target-btn-active-over",
+            new Color(targetingActive.r * 1.08f, targetingActive.g * 1.08f, targetingActive.b * 1.08f, 1f),
+            Color.WHITE, 2);
+        Drawable targetActiveDown = borderedNinePatch(skin, "target-btn-active-down",
+            new Color(targetingActive.r * 0.88f, targetingActive.g * 0.88f, targetingActive.b * 0.88f, 1f),
+            Color.WHITE, 2);
+
+        TextButton.TextButtonStyle targetingActiveStyle = new TextButton.TextButtonStyle();
+        targetingActiveStyle.up = targetActiveUp;
+        targetingActiveStyle.over = targetActiveOver;
+        targetingActiveStyle.down = targetActiveDown;
+        targetingActiveStyle.font = font;
+        targetingActiveStyle.fontColor = Color.WHITE;
+        targetingActiveStyle.overFontColor = null;
+        skin.add("targeting-button-active", targetingActiveStyle);
+
         // ── SelectBox / ScrollPane / List — styled to match menu-button ──────
         // The dropdown list uses the same dark fill + white border aesthetic.
         Drawable selectBg   = borderedNinePatch(skin, "sel-bg",
