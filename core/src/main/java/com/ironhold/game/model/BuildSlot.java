@@ -42,4 +42,8 @@ public final class BuildSlot {
     public BuildSlot withTower(String towerId) {
         return new BuildSlot(slotId, x, y, true, towerId);
     }
+
+    public BuildSlot cleared() {
+        return new BuildSlot(slotId, x, y, false, null);
+    }
 }

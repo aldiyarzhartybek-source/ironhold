@@ -269,6 +269,30 @@ public final class GameFacade {
         runtimeState.setSelectedTowerId(towers.get(index).getId());
     }
 
+    public int getSellRefundForSlot(String slotId) {
+        BuildSlot slot = findBuildSlot(slotId);
+        if (slot == null || !slot.isOccupied() || slot.getTowerId() == null) {
+            return 0;
+        }
+        return buildSystem.calculateSellRefund(slot.getTowerId());
+    }
+
+    public boolean trySellPlacedTower(String slotId) {
+        return buildSystem.trySellTower(runtimeState, slotId);
+    }
+
+    private BuildSlot findBuildSlot(String slotId) {
+        if (slotId == null) {
+            return null;
+        }
+        for (BuildSlot slot : runtimeState.getBuildSlots()) {
+            if (slot.getSlotId().equals(slotId)) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
     public BuildPlacementResult tryPlaceTower(float worldX, float worldY, String towerId) {
         lastBuildPlacementResult = buildSystem.tryPlaceTower(runtimeState, towerId, worldX, worldY);
         return lastBuildPlacementResult;

@@ -72,6 +72,41 @@ public final class BuildSystem {
         return fail(null, worldX, worldY, GameFacade.BuildPlacementResult.NO_TOWERS_AVAILABLE);
     }
 
+    public boolean trySellTower(GameRuntimeState state, String slotId) {
+        if (slotId == null || slotId.isBlank()) {
+            return false;
+        }
+        int slotIndex = findBuildSlotIndexById(state.getBuildSlots(), slotId);
+        if (slotIndex < 0) {
+            return false;
+        }
+        BuildSlot slot = state.getBuildSlots().get(slotIndex);
+        if (!slot.isOccupied()) {
+            return false;
+        }
+        PlacedTower placed = findPlacedTowerBySlot(state.getPlacedTowers(), slotId);
+        if (placed == null) {
+            return false;
+        }
+        Tower tower = towersById.get(placed.getTowerId());
+        if (tower == null) {
+            return false;
+        }
+        int refund = Math.max(0, Math.round(tower.getCost() * economy.getSellRecoveryRate()));
+        economy.addGold(refund);
+        state.getBuildSlots().set(slotIndex, slot.cleared());
+        state.getPlacedTowers().remove(placed);
+        return true;
+    }
+
+    public int calculateSellRefund(String towerId) {
+        Tower tower = towersById.get(towerId);
+        if (tower == null) {
+            return 0;
+        }
+        return Math.max(0, Math.round(tower.getCost() * economy.getSellRecoveryRate()));
+    }
+
     private GameFacade.BuildPlacementResult fail(
         String towerId,
         float worldX,
@@ -80,6 +115,24 @@ public final class BuildSystem {
     ) {
         eventBus.publish(new BuildPlacementFailedEvent(towerId, reason.name(), worldX, worldY));
         return reason;
+    }
+
+    private static PlacedTower findPlacedTowerBySlot(List<PlacedTower> placedTowers, String slotId) {
+        for (PlacedTower placed : placedTowers) {
+            if (slotId.equals(placed.getSlotId())) {
+                return placed;
+            }
+        }
+        return null;
+    }
+
+    private static int findBuildSlotIndexById(List<BuildSlot> buildSlots, String slotId) {
+        for (int i = 0; i < buildSlots.size(); i++) {
+            if (slotId.equals(buildSlots.get(i).getSlotId())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static int findNearestBuildSlotIndex(List<BuildSlot> buildSlots, float worldX, float worldY, float radius) {
