@@ -1,5 +1,6 @@
 package com.ironhold.game;
 
+import com.ironhold.combat.AttackStrategyFactory;
 import com.ironhold.events.BuildPlacementFailedEvent;
 import com.ironhold.events.EventBus;
 import com.ironhold.events.TowerBuiltEvent;
@@ -64,7 +65,8 @@ public final class BuildSystem {
             Math.max(MIN_RUNTIME_TOWER_RANGE, tower.getRange()),
             Math.max(MIN_RUNTIME_TOWER_DAMAGE, tower.getDamage()),
             Math.max(MIN_RUNTIME_TOWER_FIRE_RATE_SEC, tower.getFireRateSec()),
-            TowerTargetingPriority.FIRST
+            TowerTargetingPriority.FIRST,
+            AttackStrategyFactory.create(tower.getId())
         ));
         eventBus.publish(new TowerBuiltEvent(tower.getId(), slot.getSlotId(), tower.getCost()));
         return GameFacade.BuildPlacementResult.OK;

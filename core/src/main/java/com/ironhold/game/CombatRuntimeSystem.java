@@ -1,8 +1,7 @@
 package com.ironhold.game;
 
-import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.ironhold.events.EnemyKilledEvent;
+import com.ironhold.combat.CombatKillHelper;
 import com.ironhold.events.EventBus;
 import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.ActiveProjectile;
@@ -25,34 +24,15 @@ import java.util.Objects;
 public final class CombatRuntimeSystem {
     private static final float ENEMY_SPEED_MULTIPLIER = 10.0f;
     private static final float MIN_RUNTIME_ENEMY_SPEED = 0.1f;
-    private static final float PROJECTILE_SPEED = 320f;
     private static final float PROJECTILE_HIT_RADIUS = 12f;
-
-    private static final String FLAMETHROWER_TOWER_ID = "flamethrower_tower";
-    private static final String MORTAR_TOWER_ID = "mortar_tower";
-    private static final String LIGHTNING_TOWER_ID = "lightning_tower";
-    private static final float FLAME_CONE_DURATION_SEC = 0.32f;
-    /** Half-angle of the flame cone (radians) — smaller = narrower spray. */
-    private static final float FLAME_CONE_HALF_ANGLE_RAD = 0.26f;
-    /** Flame reach is shorter than the tower's targeting range. */
-    private static final float FLAME_CONE_RANGE_MULT = 0.55f;
-    private static final float MORTAR_SHELL_SPEED = 95f;
     private static final float MORTAR_SHELL_HIT_RADIUS = 14f;
-    private static final float MORTAR_SPLASH_RADIUS = 52f;
     private static final float MORTAR_EXPLOSION_TTL_SEC = 0.28f;
-    /** Max enemies in one chain. */
-    private static final int LIGHTNING_CHAIN_MAX = 3;
-    /** How long the visual bolt stays on screen (seconds). */
-    private static final float LIGHTNING_FLASH_SEC = 0.08f;
-    /** Extra offset midpoints per bolt segment, pixels perpendicular to the direction. */
-    private static final float LIGHTNING_ZAG_AMP = 14f;
-
-    private final EventBus eventBus;
-    private final EconomyState economy;
 
     public CombatRuntimeSystem(EventBus eventBus, EconomyState economy) {
-        this.eventBus = Objects.requireNonNull(eventBus, "eventBus");
-        this.economy  = Objects.requireNonNull(economy, "economy");
+        CombatKillHelper.install(
+            Objects.requireNonNull(eventBus, "eventBus"),
+            Objects.requireNonNull(economy, "economy")
+        );
     }
 
     public boolean debugDefeatFirstEnemy(GameRuntimeState state) {
@@ -60,7 +40,7 @@ public final class CombatRuntimeSystem {
             return false;
         }
         ActiveEnemy defeated = state.getActiveEnemies().remove(0);
-        awardKill(state, defeated);
+        CombatKillHelper.awardKill(state, defeated);
         return true;
     }
 
@@ -103,187 +83,24 @@ public final class CombatRuntimeSystem {
             }
             return;
         }
-        boolean hasTargets = !state.getActiveEnemies().isEmpty();
+
         for (PlacedTower tower : state.getPlacedTowers()) {
             tower.tickPulse(deltaSec);
 
             float cooldown = Math.max(0f, tower.getCooldownSec() - deltaSec);
             tower.setCooldownSec(cooldown);
-
-            if (!hasTargets || cooldown > 0f) {
+            if (cooldown > 0f) {
                 continue;
             }
 
-            if (LIGHTNING_TOWER_ID.equals(tower.getTowerId())) {
-                fireLightning(state, tower);
-            } else if (MORTAR_TOWER_ID.equals(tower.getTowerId())) {
-                fireMortar(state, tower);
-            } else if (FLAMETHROWER_TOWER_ID.equals(tower.getTowerId())) {
-                fireFlamethrower(state, tower);
-            } else {
-                fireProjectile(state, tower);
+            ActiveEnemy target = pickTargetForTower(state, tower);
+            if (target == null) {
+                continue;
             }
+
+            tower.getAttackStrategy().fire(tower, target, state);
+            tower.setCooldownSec(tower.getFireRateSec());
         }
-    }
-
-    private void fireProjectile(GameRuntimeState state, PlacedTower tower) {
-        ActiveEnemy target = pickTargetForTower(state, tower);
-        if (target == null) return;
-        tower.setCooldownSec(tower.getFireRateSec());
-        state.getActiveProjectiles().add(ActiveProjectile.beam(
-            "projectile-" + state.getNextProjectileInstanceId(),
-            target.getRuntimeId(),
-            tower.getDamage(),
-            tower.getX(),
-            tower.getY(),
-            PROJECTILE_SPEED
-        ));
-    }
-
-    private void fireFlamethrower(GameRuntimeState state, PlacedTower tower) {
-        ActiveEnemy target = pickTargetForTower(state, tower);
-        if (target == null) return;
-        tower.setCooldownSec(tower.getFireRateSec());
-        float dx = target.getX() - tower.getX();
-        float dy = target.getY() - tower.getY();
-        float aim = (float) Math.atan2(dy, dx);
-        float coneRange = tower.getRange() * FLAME_CONE_RANGE_MULT;
-        state.getFlameConeEffects().add(new FlameConeEffect(
-            tower.getX(),
-            tower.getY(),
-            aim,
-            coneRange,
-            FLAME_CONE_HALF_ANGLE_RAD,
-            tower.getDamage(),
-            FLAME_CONE_DURATION_SEC
-        ));
-    }
-
-    private void fireMortar(GameRuntimeState state, PlacedTower tower) {
-        ActiveEnemy target = pickTargetForTower(state, tower);
-        if (target == null) return;
-        tower.setCooldownSec(tower.getFireRateSec());
-        state.getActiveProjectiles().add(ActiveProjectile.mortarShell(
-            "mortar-" + state.getNextProjectileInstanceId(),
-            tower.getDamage(),
-            tower.getX(),
-            tower.getY(),
-            target.getX(),
-            target.getY(),
-            MORTAR_SPLASH_RADIUS,
-            MORTAR_SHELL_SPEED
-        ));
-    }
-
-    private void fireLightning(GameRuntimeState state, PlacedTower tower) {
-        List<ActiveEnemy> chain = buildChainTargets(state, tower);
-        if (chain.isEmpty()) return;
-
-        tower.setCooldownSec(tower.getFireRateSec());
-        tower.setLockedTargetRuntimeId(chain.get(0).getRuntimeId());
-
-        // Instant damage + hit flash for all chained enemies
-        for (ActiveEnemy enemy : chain) {
-            enemy.setCurrentHp(enemy.getCurrentHp() - tower.getDamage());
-            enemy.triggerHitFlash(HIT_FLASH_DURATION_SEC);
-            state.getHitEffects().add(new HitEffect(enemy.getX(), enemy.getY(), 0.22f));
-        }
-
-        // Remove killed enemies
-        List<ActiveEnemy> killed = new ArrayList<>();
-        for (ActiveEnemy enemy : chain) {
-            if (enemy.getCurrentHp() <= 0 && !killed.contains(enemy)) {
-                killed.add(enemy);
-            }
-        }
-        for (ActiveEnemy enemy : killed) {
-            awardKill(state, enemy);
-        }
-        state.getActiveEnemies().removeAll(killed);
-
-        // Build zigzag waypoints: tower → enemy1 [→ enemy2 [→ enemy3]]
-        state.getLightningEffects().add(buildLightningEffect(tower, chain));
-    }
-
-    /**
-     * Finds up to {@link #LIGHTNING_CHAIN_MAX} enemies to chain between.
-     * Primary = nearest to tower in range. Each subsequent hop picks the nearest
-     * remaining enemy to the previous target (no range check after the first hit).
-     */
-    private List<ActiveEnemy> buildChainTargets(GameRuntimeState state, PlacedTower tower) {
-        float rangeSq = tower.getRange() * tower.getRange();
-        List<ActiveEnemy> chain = new ArrayList<>();
-        List<ActiveEnemy> remaining = new ArrayList<>(state.getActiveEnemies());
-
-        float cx = tower.getX();
-        float cy = tower.getY();
-
-        for (int step = 0; step < LIGHTNING_CHAIN_MAX && !remaining.isEmpty(); step++) {
-            ActiveEnemy nearest = null;
-            float bestSq = Float.MAX_VALUE;
-            for (ActiveEnemy enemy : remaining) {
-                float dx = cx - enemy.getX();
-                float dy = cy - enemy.getY();
-                float dsq = dx * dx + dy * dy;
-                // First target must be in tower range; chained targets allowed anywhere
-                if (step == 0 && dsq > rangeSq) continue;
-                if (dsq < bestSq) {
-                    bestSq = dsq;
-                    nearest = enemy;
-                }
-            }
-            if (nearest == null) break;
-            chain.add(nearest);
-            remaining.remove(nearest);
-            cx = nearest.getX();
-            cy = nearest.getY();
-        }
-        return chain;
-    }
-
-    /**
-     * Builds a {@link LightningEffect} with pre-computed zigzag waypoints.
-     * Each segment tower→e1, e1→e2, … gets one perpendicular midpoint offset
-     * to create the characteristic bolt shape.
-     */
-    private static LightningEffect buildLightningEffect(PlacedTower tower, List<ActiveEnemy> chain) {
-        // Total waypoints: tower + (midpoint + enemy) per chain step
-        int segCount = chain.size();
-        float[] wp = new float[(1 + segCount * 2) * 2]; // each node = 2 floats
-        int idx = 0;
-
-        float prevX = tower.getX();
-        float prevY = tower.getY();
-        wp[idx++] = prevX;
-        wp[idx++] = prevY;
-
-        for (int i = 0; i < segCount; i++) {
-            float nextX = chain.get(i).getX();
-            float nextY = chain.get(i).getY();
-
-            // Perpendicular midpoint offset (alternating side per segment)
-            float mx = (prevX + nextX) * 0.5f;
-            float my = (prevY + nextY) * 0.5f;
-            float dx = nextX - prevX;
-            float dy = nextY - prevY;
-            float len = (float) Math.sqrt(dx * dx + dy * dy);
-            float sign = (i % 2 == 0) ? 1f : -1f;
-            if (len > 0.001f) {
-                float perpX = -dy / len;
-                float perpY =  dx / len;
-                float amp = LIGHTNING_ZAG_AMP * (0.7f + 0.3f * MathUtils.random());
-                mx += perpX * amp * sign;
-                my += perpY * amp * sign;
-            }
-            wp[idx++] = mx;
-            wp[idx++] = my;
-            wp[idx++] = nextX;
-            wp[idx++] = nextY;
-
-            prevX = nextX;
-            prevY = nextY;
-        }
-        return new LightningEffect(wp, LIGHTNING_FLASH_SEC);
     }
 
     private void updateMortarShell(
@@ -369,7 +186,7 @@ public final class CombatRuntimeSystem {
         }
         if (!killed.isEmpty()) {
             for (ActiveEnemy enemy : killed) {
-                awardKill(state, enemy);
+                CombatKillHelper.awardKill(state, enemy);
             }
             state.getActiveEnemies().removeAll(killed);
         }
@@ -465,7 +282,7 @@ public final class CombatRuntimeSystem {
         }
         if (!killedEnemies.isEmpty()) {
             for (ActiveEnemy enemy : killedEnemies) {
-                awardKill(state, enemy);
+                CombatKillHelper.awardKill(state, enemy);
             }
             state.getActiveEnemies().removeAll(killedEnemies);
         }
@@ -553,21 +370,6 @@ public final class CombatRuntimeSystem {
             }
         }
         return enemy.getTargetWaypointIndex() >= enemyPath.size();
-    }
-
-    private void awardKill(GameRuntimeState state, ActiveEnemy enemy) {
-        int reward = economy.calculateKillReward(enemy.getReward());
-        economy.addGold(reward);
-        state.addGoldEarned(reward);
-        state.setLastAwardedGold(reward);
-        state.getSessionStats().recordKill();
-        eventBus.publish(new EnemyKilledEvent(
-            enemy.getRuntimeId(),
-            enemy.getEnemyId(),
-            reward,
-            enemy.getX(),
-            enemy.getY()
-        ));
     }
 
     private static ActiveEnemy findActiveEnemyByRuntimeId(GameRuntimeState state, String runtimeId) {

@@ -1,5 +1,7 @@
 package com.ironhold.game.model;
 
+import com.ironhold.combat.AttackStrategy;
+
 /**
  * Runtime tower instance placed on a build slot.
  */
@@ -26,6 +28,7 @@ public final class PlacedTower {
     private int damage;
     private float fireRateSec;
     private TowerTargetingPriority targetingPriority;
+    private final AttackStrategy attackStrategy;
     private float cooldownSec;
     private String lockedTargetRuntimeId;
 
@@ -41,7 +44,8 @@ public final class PlacedTower {
         float range,
         int damage,
         float fireRateSec,
-        TowerTargetingPriority targetingPriority
+        TowerTargetingPriority targetingPriority,
+        AttackStrategy attackStrategy
     ) {
         this.slotId = slotId;
         this.towerId = towerId;
@@ -53,8 +57,13 @@ public final class PlacedTower {
         this.damage = Math.max(MIN_RUNTIME_DAMAGE, damage);
         this.fireRateSec = Math.max(MIN_RUNTIME_FIRE_RATE_SEC, fireRateSec);
         this.targetingPriority = targetingPriority != null ? targetingPriority : TowerTargetingPriority.FIRST;
+        this.attackStrategy = java.util.Objects.requireNonNull(attackStrategy, "attackStrategy");
         this.cooldownSec = 0f;
         this.lockedTargetRuntimeId = null;
+    }
+
+    public AttackStrategy getAttackStrategy() {
+        return attackStrategy;
     }
 
     public String getSlotId() {
