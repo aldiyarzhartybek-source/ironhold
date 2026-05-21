@@ -26,6 +26,8 @@ import com.ironhold.core.fx.FxBloomPipeline;
 import com.ironhold.game.GameFacade;
 import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
+import com.ironhold.game.model.BuildSlot;
+import com.ironhold.game.model.Tower;
 import com.ironhold.core.render.EnemyShapeRenderer;
 import com.ironhold.core.render.GameplayMapRenderer;
 import com.ironhold.core.render.HitEffectRenderer;
@@ -39,6 +41,7 @@ import com.ironhold.level.LevelStatus;
 import com.ironhold.ui.GameTheme;
 import com.ironhold.ui.UiLayer;
 
+import java.util.List;
 import java.util.Objects;
 
 public final class GameScreen extends ScreenAdapter {
@@ -68,10 +71,13 @@ public final class GameScreen extends ScreenAdapter {
     private final GameSpeedControls gameSpeedControls;
     private final UiLayer endStateUi;
     private final UiLayer pauseUi;
+    private final BuildSlotPopup buildSlotPopup;
     private final InputProcessor gameWorldInput;
     private boolean endOverlayVisible;
     private LevelStatus endOverlayStatus;
     private boolean isPaused;
+    /** Last free slot the player opened the build popup on (for hotkeys 1–N). */
+    private String lastTouchedSlotId;
 
     public GameScreen(GameFacade game) {
         this.game = Objects.requireNonNull(game, "game");
@@ -98,6 +104,8 @@ public final class GameScreen extends ScreenAdapter {
         this.waveStartControls = new WaveStartControls(game);
         this.gameSpeedControls = new GameSpeedControls(game);
         this.endStateUi = new UiLayer(assetService.getSkin());
+        this.buildSlotPopup = new BuildSlotPopup(game, font,
+            Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.pauseUi    = new UiLayer(assetService.getSkin());
         this.gameWorldInput = createGameWorldInput();
         this.endOverlayVisible = false;
@@ -163,6 +171,9 @@ public final class GameScreen extends ScreenAdapter {
         // ── UI — drawn after bloom so it stays crisp ───────────────────────
         batch.begin();
         hud.render(batch, view, debugMode);
+        if (!endOverlayVisible && !isPaused) {
+            buildSlotPopup.render(batch);
+        }
         drawEventOverlays();
         batch.end();
 
@@ -194,9 +205,27 @@ public final class GameScreen extends ScreenAdapter {
                     || gameSpeedControls.getUi().getStage().hit(screenX, screenY, true) != null) {
                     return false;
                 }
+                if (!isPaused && buildSlotPopup.isVisible()) {
+                    buildSlotPopup.handleTouchDown(screenX, screenY, camera);
+                    return true;
+                }
+
                 touchWorld.set(screenX, screenY, 0f);
                 camera.unproject(touchWorld);
-                game.handlePrimaryAction(touchWorld.x, touchWorld.y);
+                float wx = touchWorld.x;
+                float wy = touchWorld.y;
+
+                if (!isPaused) {
+                    BuildSlot nearest = findNearestFreeSlot(wx, wy, 48f);
+                    if (nearest != null) {
+                        lastTouchedSlotId = nearest.getSlotId();
+                        buildSlotPopup.show(
+                            nearest.getSlotId(), nearest.getX(), nearest.getY(), camera);
+                        return true;
+                    }
+                }
+
+                game.handlePrimaryAction(wx, wy);
                 return false;
             }
 
@@ -216,7 +245,9 @@ public final class GameScreen extends ScreenAdapter {
                     return true;
                 }
                 if (keycode >= Input.Keys.NUM_1 && keycode <= Input.Keys.NUM_9) {
-                    game.selectTowerByIndex(keycode - Input.Keys.NUM_1);
+                    buildSlotPopup.hide();
+                    int towerIndex = keycode - Input.Keys.NUM_1;
+                    placeTowerByHotkey(towerIndex);
                     return true;
                 }
                 if (debugMode && keycode == Input.Keys.K) {
@@ -322,6 +353,7 @@ public final class GameScreen extends ScreenAdapter {
     public void resize(int width, int height) {
         camera.setToOrtho(false, width, height);
         hud.resize(width, height);
+        buildSlotPopup.resize(width, height);
         waveStartControls.resize(width, height);
         gameSpeedControls.resize(width, height);
         endStateUi.resize(width, height);
@@ -343,6 +375,7 @@ public final class GameScreen extends ScreenAdapter {
         bloomPipeline.dispose();
         batch.dispose();
         eventUiFx.dispose();
+        buildSlotPopup.dispose();
         waveStartControls.dispose();
         gameSpeedControls.dispose();
         endStateUi.dispose();
@@ -352,6 +385,61 @@ public final class GameScreen extends ScreenAdapter {
     @Override
     public void hide() {
         Gdx.input.setInputProcessor(null);
+    }
+
+    private BuildSlot findNearestFreeSlot(float wx, float wy, float radius) {
+        BuildSlot best = null;
+        float bestDistSq = radius * radius;
+        for (BuildSlot slot : game.getBuildSlots()) {
+            if (slot.isOccupied()) {
+                continue;
+            }
+            float dx = slot.getX() - wx;
+            float dy = slot.getY() - wy;
+            float distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                best = slot;
+            }
+        }
+        return best;
+    }
+
+    private BuildSlot findSlotById(String slotId) {
+        if (slotId == null) {
+            return null;
+        }
+        for (BuildSlot slot : game.getBuildSlots()) {
+            if (slot.getSlotId().equals(slotId)) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
+    private void placeTowerByHotkey(int towerIndex) {
+        List<Tower> towers = game.getTowers();
+        if (towerIndex < 0 || towerIndex >= towers.size()) {
+            return;
+        }
+        Tower tower = towers.get(towerIndex);
+        game.selectTower(tower.getId());
+
+        if (lastTouchedSlotId == null) {
+            return;
+        }
+        BuildSlot slot = findSlotById(lastTouchedSlotId);
+        if (slot == null || slot.isOccupied()) {
+            return;
+        }
+        if (game.getRuntimeView().getGold() < tower.getCost()) {
+            return;
+        }
+        game.tryPlaceTower(slot.getX(), slot.getY(), tower.getId());
+        BuildSlot updated = findSlotById(lastTouchedSlotId);
+        if (updated != null && updated.isOccupied()) {
+            lastTouchedSlotId = null;
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
