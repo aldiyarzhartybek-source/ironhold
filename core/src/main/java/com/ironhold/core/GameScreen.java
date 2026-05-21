@@ -72,6 +72,7 @@ public final class GameScreen extends ScreenAdapter {
     private final UiLayer endStateUi;
     private final UiLayer pauseUi;
     private final BuildSlotPopup buildSlotPopup;
+    private final TowerSellBar towerSellBar;
     private final InputProcessor gameWorldInput;
     private boolean endOverlayVisible;
     private LevelStatus endOverlayStatus;
@@ -105,6 +106,8 @@ public final class GameScreen extends ScreenAdapter {
         this.gameSpeedControls = new GameSpeedControls(game);
         this.endStateUi = new UiLayer(assetService.getSkin());
         this.buildSlotPopup = new BuildSlotPopup(game, font,
+            Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        this.towerSellBar = new TowerSellBar(game, font,
             Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.pauseUi    = new UiLayer(assetService.getSkin());
         this.gameWorldInput = createGameWorldInput();
@@ -172,7 +175,9 @@ public final class GameScreen extends ScreenAdapter {
         batch.begin();
         hud.render(batch, view, debugMode);
         if (!endOverlayVisible && !isPaused) {
+            towerSellBar.syncSelection(camera);
             buildSlotPopup.render(batch);
+            towerSellBar.render(batch);
         }
         drawEventOverlays();
         batch.end();
@@ -205,6 +210,11 @@ public final class GameScreen extends ScreenAdapter {
                     || gameSpeedControls.getUi().getStage().hit(screenX, screenY, true) != null) {
                     return false;
                 }
+                if (!isPaused && towerSellBar.isVisible()) {
+                    if (towerSellBar.handleTouchDown(screenX, screenY)) {
+                        return true;
+                    }
+                }
                 if (!isPaused && buildSlotPopup.isVisible()) {
                     buildSlotPopup.handleTouchDown(screenX, screenY, camera);
                     return true;
@@ -216,13 +226,22 @@ public final class GameScreen extends ScreenAdapter {
                 float wy = touchWorld.y;
 
                 if (!isPaused) {
+                    BuildSlot occupied = findNearestOccupiedSlot(wx, wy, 48f);
+                    if (occupied != null) {
+                        buildSlotPopup.hide();
+                        towerSellBar.show(
+                            occupied.getSlotId(), occupied.getX(), occupied.getY(), camera);
+                        return true;
+                    }
                     BuildSlot nearest = findNearestFreeSlot(wx, wy, 48f);
                     if (nearest != null) {
+                        towerSellBar.hide();
                         lastTouchedSlotId = nearest.getSlotId();
                         buildSlotPopup.show(
                             nearest.getSlotId(), nearest.getX(), nearest.getY(), camera);
                         return true;
                     }
+                    towerSellBar.hide();
                 }
 
                 game.handlePrimaryAction(wx, wy);
@@ -354,6 +373,7 @@ public final class GameScreen extends ScreenAdapter {
         camera.setToOrtho(false, width, height);
         hud.resize(width, height);
         buildSlotPopup.resize(width, height);
+        towerSellBar.resize(width, height);
         waveStartControls.resize(width, height);
         gameSpeedControls.resize(width, height);
         endStateUi.resize(width, height);
@@ -376,6 +396,7 @@ public final class GameScreen extends ScreenAdapter {
         batch.dispose();
         eventUiFx.dispose();
         buildSlotPopup.dispose();
+        towerSellBar.dispose();
         waveStartControls.dispose();
         gameSpeedControls.dispose();
         endStateUi.dispose();
@@ -385,6 +406,24 @@ public final class GameScreen extends ScreenAdapter {
     @Override
     public void hide() {
         Gdx.input.setInputProcessor(null);
+    }
+
+    private BuildSlot findNearestOccupiedSlot(float wx, float wy, float radius) {
+        BuildSlot best = null;
+        float bestDistSq = radius * radius;
+        for (BuildSlot slot : game.getBuildSlots()) {
+            if (!slot.isOccupied()) {
+                continue;
+            }
+            float dx = slot.getX() - wx;
+            float dy = slot.getY() - wy;
+            float distSq = dx * dx + dy * dy;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                best = slot;
+            }
+        }
+        return best;
     }
 
     private BuildSlot findNearestFreeSlot(float wx, float wy, float radius) {

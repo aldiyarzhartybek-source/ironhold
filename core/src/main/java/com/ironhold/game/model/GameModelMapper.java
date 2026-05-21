@@ -62,7 +62,7 @@ public final class GameModelMapper {
         return new EconomyState(
             config.getEconomy().startingGold,
             config.getEconomy().killRewardMultiplier,
-            config.getEconomy().buildRefundRate
+            config.getEconomy().sellRecoveryRate
         );
     }
 

@@ -7,12 +7,12 @@ public final class EconomyState {
 
     private int gold;
     private final float killRewardMultiplier;
-    private final float buildRefundRate;
+    private final float sellRecoveryRate;
 
-    public EconomyState(int gold, float killRewardMultiplier, float buildRefundRate) {
+    public EconomyState(int gold, float killRewardMultiplier, float sellRecoveryRate) {
         this.gold = gold;
         this.killRewardMultiplier = killRewardMultiplier;
-        this.buildRefundRate = buildRefundRate;
+        this.sellRecoveryRate = sellRecoveryRate;
     }
 
     public int getGold() {
@@ -54,7 +54,7 @@ public final class EconomyState {
         return killRewardMultiplier;
     }
 
-    public float getBuildRefundRate() {
-        return buildRefundRate;
+    public float getSellRecoveryRate() {
+        return sellRecoveryRate;
     }
 }

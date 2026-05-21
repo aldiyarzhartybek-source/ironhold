@@ -338,9 +338,9 @@ public final class GameConfig {
             fallback.killRewardMultiplier,
             "economy.killRewardMultiplier"
         );
-        if (economy.buildRefundRate < 0f || economy.buildRefundRate > 1f) {
-            warn("economy.buildRefundRate out of range [0..1], fallback to " + fallback.buildRefundRate);
-            economy.buildRefundRate = fallback.buildRefundRate;
+        if (economy.sellRecoveryRate < 0f || economy.sellRecoveryRate > 1f) {
+            warn("economy.sellRecoveryRate out of range [0..1], fallback to " + fallback.sellRecoveryRate);
+            economy.sellRecoveryRate = fallback.sellRecoveryRate;
         }
     }
 
@@ -419,7 +419,7 @@ public final class GameConfig {
         EconomyConfigDto dto = new EconomyConfigDto();
         dto.startingGold = 150;
         dto.killRewardMultiplier = 1.0f;
-        dto.buildRefundRate = 0.5f;
+        dto.sellRecoveryRate = 0.7f;
         return dto;
     }
 
