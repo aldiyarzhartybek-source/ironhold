@@ -506,21 +506,12 @@ public final class CombatRuntimeSystem {
             tower.setLockedTargetRuntimeId(null);
         }
 
-        ActiveEnemy chosen;
-        switch (tower.getTargetingPriority()) {
-            case NEAREST:
-                chosen = pickNearestInRange(state.getActiveEnemies(), tower, rangeSq);
-                break;
-            case FIRST:
-                chosen = pickFirstAlongPathInRange(state.getActiveEnemies(), state.getEnemyPath(), tower, rangeSq);
-                break;
-            case STRONGEST:
-                chosen = pickStrongestInRange(state.getActiveEnemies(), tower, rangeSq);
-                break;
-            default:
-                chosen = pickNearestInRange(state.getActiveEnemies(), tower, rangeSq);
-                break;
-        }
+        ActiveEnemy chosen = tower.getTargetingPriority().pickInRange(
+            state.getActiveEnemies(),
+            tower,
+            state.getEnemyPath(),
+            rangeSq
+        );
         if (chosen != null) {
             tower.setLockedTargetRuntimeId(chosen.getRuntimeId());
         }
@@ -529,50 +520,6 @@ public final class CombatRuntimeSystem {
 
     private static boolean isEnemyInTowerRange(PlacedTower tower, ActiveEnemy enemy, float rangeSq) {
         return TowerTargeting.distanceSquaredToTower(tower.getX(), tower.getY(), enemy) <= rangeSq;
-    }
-
-    private static ActiveEnemy pickNearestInRange(List<ActiveEnemy> enemies, PlacedTower tower, float rangeSq) {
-        ActiveEnemy best = null;
-        for (ActiveEnemy enemy : enemies) {
-            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
-                continue;
-            }
-            if (best == null || TowerTargeting.compareNearest(tower.getX(), tower.getY(), enemy, best) < 0) {
-                best = enemy;
-            }
-        }
-        return best;
-    }
-
-    private static ActiveEnemy pickFirstAlongPathInRange(
-        List<ActiveEnemy> enemies,
-        List<Vector2> enemyPath,
-        PlacedTower tower,
-        float rangeSq
-    ) {
-        ActiveEnemy best = null;
-        for (ActiveEnemy enemy : enemies) {
-            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
-                continue;
-            }
-            if (best == null || TowerTargeting.compareFirstAlongPath(enemyPath, enemy, best) > 0) {
-                best = enemy;
-            }
-        }
-        return best;
-    }
-
-    private static ActiveEnemy pickStrongestInRange(List<ActiveEnemy> enemies, PlacedTower tower, float rangeSq) {
-        ActiveEnemy best = null;
-        for (ActiveEnemy enemy : enemies) {
-            if (!isEnemyInTowerRange(tower, enemy, rangeSq)) {
-                continue;
-            }
-            if (best == null || TowerTargeting.compareStrongest(enemy, best) > 0) {
-                best = enemy;
-            }
-        }
-        return best;
     }
 
     private static boolean advanceEnemyAlongPath(ActiveEnemy enemy, List<Vector2> enemyPath, float deltaSec) {

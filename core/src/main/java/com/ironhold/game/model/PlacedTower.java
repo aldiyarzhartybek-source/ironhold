@@ -12,7 +12,7 @@ public final class PlacedTower {
     private final float range;
     private final int damage;
     private final float fireRateSec;
-    private final TowerTargetingPriority targetingPriority;
+    private TowerTargetingPriority targetingPriority;
     private float cooldownSec;
     private String lockedTargetRuntimeId;
 
@@ -36,7 +36,7 @@ public final class PlacedTower {
         this.range = range;
         this.damage = damage;
         this.fireRateSec = fireRateSec;
-        this.targetingPriority = targetingPriority != null ? targetingPriority : TowerTargetingPriority.NEAREST;
+        this.targetingPriority = targetingPriority != null ? targetingPriority : TowerTargetingPriority.FIRST;
         this.cooldownSec = 0f;
         this.lockedTargetRuntimeId = null;
     }
@@ -79,6 +79,11 @@ public final class PlacedTower {
 
     public TowerTargetingPriority getTargetingPriority() {
         return targetingPriority;
+    }
+
+    public void setTargetingPriority(TowerTargetingPriority targetingPriority) {
+        this.targetingPriority = targetingPriority != null ? targetingPriority : TowerTargetingPriority.FIRST;
+        this.lockedTargetRuntimeId = null;
     }
 
     public String getLockedTargetRuntimeId() {

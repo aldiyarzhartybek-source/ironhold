@@ -25,7 +25,7 @@ public final class Tower {
         this.range = range;
         this.damage = damage;
         this.fireRateSec = fireRateSec;
-        this.targetingPriority = targetingPriority != null ? targetingPriority : TowerTargetingPriority.NEAREST;
+        this.targetingPriority = targetingPriority != null ? targetingPriority : TowerTargetingPriority.FIRST;
     }
 
     public String getId() {
