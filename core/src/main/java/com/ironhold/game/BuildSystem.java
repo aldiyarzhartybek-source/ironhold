@@ -60,6 +60,7 @@ public final class BuildSystem {
             tower.getId(),
             slot.getX(),
             slot.getY(),
+            tower.getCost(),
             Math.max(MIN_RUNTIME_TOWER_RANGE, tower.getRange()),
             Math.max(MIN_RUNTIME_TOWER_DAMAGE, tower.getDamage()),
             Math.max(MIN_RUNTIME_TOWER_FIRE_RATE_SEC, tower.getFireRateSec()),
@@ -93,19 +94,46 @@ public final class BuildSystem {
         if (tower == null) {
             return false;
         }
-        int refund = Math.max(0, Math.round(tower.getCost() * economy.getSellRecoveryRate()));
+        int refund = calculateSellRefund(placed);
         economy.addGold(refund);
         state.getBuildSlots().set(slotIndex, slot.cleared());
         state.getPlacedTowers().remove(placed);
         return true;
     }
 
-    public int calculateSellRefund(String towerId) {
-        Tower tower = towersById.get(towerId);
-        if (tower == null) {
+    public int calculateSellRefund(PlacedTower placed) {
+        if (placed == null) {
             return 0;
         }
-        return Math.max(0, Math.round(tower.getCost() * economy.getSellRecoveryRate()));
+        return Math.max(0, Math.round(placed.getTotalInvestedGold() * economy.getSellRecoveryRate()));
+    }
+
+    public int calculateSellRefundForSlot(GameRuntimeState state, String slotId) {
+        PlacedTower placed = findPlacedTowerBySlot(state.getPlacedTowers(), slotId);
+        return calculateSellRefund(placed);
+    }
+
+    public boolean tryUpgradeTower(GameRuntimeState state, String slotId) {
+        if (slotId == null || slotId.isBlank()) {
+            return false;
+        }
+        PlacedTower placed = findPlacedTowerBySlot(state.getPlacedTowers(), slotId);
+        if (placed == null) {
+            return false;
+        }
+        int costBefore = placed.getUpgradeCost();
+        if (!placed.upgrade(economy)) {
+            return false;
+        }
+        if (costBefore > 0) {
+            state.getSessionStats().addGoldSpent(costBefore);
+        }
+        return true;
+    }
+
+    public int getUpgradeCost(GameRuntimeState state, String slotId) {
+        PlacedTower placed = findPlacedTowerBySlot(state.getPlacedTowers(), slotId);
+        return placed == null ? 0 : placed.getUpgradeCost();
     }
 
     private GameFacade.BuildPlacementResult fail(

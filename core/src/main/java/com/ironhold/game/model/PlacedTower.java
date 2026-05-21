@@ -5,13 +5,26 @@ package com.ironhold.game.model;
  */
 public final class PlacedTower {
 
+    private static final float MIN_RUNTIME_RANGE = 16f;
+    private static final int MIN_RUNTIME_DAMAGE = 1;
+    private static final float MIN_RUNTIME_FIRE_RATE_SEC = 0.1f;
+    private static final float UPGRADE_DAMAGE_MUL = 1.25f;
+    private static final float UPGRADE_RANGE_MUL = 1.10f;
+    private static final float UPGRADE_FIRE_RATE_MUL = 0.92f;
+
+    public static final int MAX_LEVEL = 3;
+
     private final String slotId;
     private final String towerId;
     private final float x;
     private final float y;
-    private final float range;
-    private final int damage;
-    private final float fireRateSec;
+    private final int baseCost;
+    /** Build cost + all upgrade costs spent on this tower. */
+    private int totalInvestedGold;
+    private int level = 1;
+    private float range;
+    private int damage;
+    private float fireRateSec;
     private TowerTargetingPriority targetingPriority;
     private float cooldownSec;
     private String lockedTargetRuntimeId;
@@ -24,6 +37,7 @@ public final class PlacedTower {
         String towerId,
         float x,
         float y,
+        int baseCost,
         float range,
         int damage,
         float fireRateSec,
@@ -33,9 +47,11 @@ public final class PlacedTower {
         this.towerId = towerId;
         this.x = x;
         this.y = y;
-        this.range = range;
-        this.damage = damage;
-        this.fireRateSec = fireRateSec;
+        this.baseCost = baseCost;
+        this.totalInvestedGold = baseCost;
+        this.range = Math.max(MIN_RUNTIME_RANGE, range);
+        this.damage = Math.max(MIN_RUNTIME_DAMAGE, damage);
+        this.fireRateSec = Math.max(MIN_RUNTIME_FIRE_RATE_SEC, fireRateSec);
         this.targetingPriority = targetingPriority != null ? targetingPriority : TowerTargetingPriority.FIRST;
         this.cooldownSec = 0f;
         this.lockedTargetRuntimeId = null;
@@ -57,6 +73,18 @@ public final class PlacedTower {
         return y;
     }
 
+    public int getLevel() {
+        return level;
+    }
+
+    public int getTotalInvestedGold() {
+        return totalInvestedGold;
+    }
+
+    public boolean isMaxLevel() {
+        return level >= MAX_LEVEL;
+    }
+
     public float getRange() {
         return range;
     }
@@ -67,6 +95,35 @@ public final class PlacedTower {
 
     public float getFireRateSec() {
         return fireRateSec;
+    }
+
+    public int getUpgradeCost() {
+        if (level >= MAX_LEVEL) {
+            return 0;
+        }
+        return Math.max(1, Math.round(baseCost * level * 0.6f));
+    }
+
+    /**
+     * Upgrades exactly one level when the player has enough gold.
+     *
+     * @return {@code true} if gold was spent and stats were updated
+     */
+    public boolean upgrade(EconomyState economy) {
+        if (economy == null || level >= MAX_LEVEL) {
+            return false;
+        }
+        int cost = getUpgradeCost();
+        if (!economy.trySpend(cost)) {
+            return false;
+        }
+        totalInvestedGold += cost;
+        level++;
+        damage = Math.max(MIN_RUNTIME_DAMAGE, Math.round(damage * UPGRADE_DAMAGE_MUL));
+        range = Math.max(MIN_RUNTIME_RANGE, range * UPGRADE_RANGE_MUL);
+        fireRateSec = Math.max(MIN_RUNTIME_FIRE_RATE_SEC, fireRateSec * UPGRADE_FIRE_RATE_MUL);
+        lockedTargetRuntimeId = null;
+        return true;
     }
 
     public float getCooldownSec() {
@@ -94,13 +151,10 @@ public final class PlacedTower {
         this.lockedTargetRuntimeId = lockedTargetRuntimeId;
     }
 
-    // ── Visual state ────────────────────────────────────────────────────────
-
     public float getPulsePhaseSec() {
         return pulsePhaseSec;
     }
 
-    /** Advances the free-running pulse clock; wraps to keep the value bounded. */
     public void tickPulse(float deltaSec) {
         this.pulsePhaseSec = (this.pulsePhaseSec + deltaSec) % (float) (Math.PI * 2.0);
     }

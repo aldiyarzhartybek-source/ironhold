@@ -73,6 +73,7 @@ public final class GameScreen extends ScreenAdapter {
     private final UiLayer pauseUi;
     private final BuildSlotPopup buildSlotPopup;
     private final TowerSellBar towerSellBar;
+    private final TowerUpgradeBar towerUpgradeBar;
     private final TowerTargetingControls towerTargetingControls;
     private final InputProcessor gameWorldInput;
     private boolean endOverlayVisible;
@@ -109,6 +110,8 @@ public final class GameScreen extends ScreenAdapter {
         this.buildSlotPopup = new BuildSlotPopup(game, font,
             Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.towerSellBar = new TowerSellBar(game, font,
+            Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        this.towerUpgradeBar = new TowerUpgradeBar(game, font,
             Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         this.towerTargetingControls = new TowerTargetingControls(game);
         this.pauseUi    = new UiLayer(assetService.getSkin());
@@ -178,8 +181,10 @@ public final class GameScreen extends ScreenAdapter {
         hud.render(batch, view, debugMode);
         if (!endOverlayVisible && !isPaused) {
             towerSellBar.syncSelection(camera);
+            towerUpgradeBar.syncSelection(camera);
             towerTargetingControls.syncSelection(camera);
             buildSlotPopup.render(batch);
+            towerUpgradeBar.render(batch);
             towerSellBar.render(batch);
         }
         drawEventOverlays();
@@ -216,8 +221,14 @@ public final class GameScreen extends ScreenAdapter {
                     || towerTargetingControls.getUi().getStage().hit(screenX, screenY, true) != null) {
                     return false;
                 }
+                if (!isPaused && towerUpgradeBar.isVisible()) {
+                    if (towerUpgradeBar.handleTouchDown(screenX, screenY)) {
+                        return true;
+                    }
+                }
                 if (!isPaused && towerSellBar.isVisible()) {
                     if (towerSellBar.handleTouchDown(screenX, screenY)) {
+                        towerUpgradeBar.hide();
                         return true;
                     }
                 }
@@ -237,6 +248,8 @@ public final class GameScreen extends ScreenAdapter {
                         buildSlotPopup.hide();
                         towerSellBar.show(
                             occupied.getSlotId(), occupied.getX(), occupied.getY(), camera);
+                        towerUpgradeBar.show(
+                            occupied.getSlotId(), occupied.getX(), occupied.getY(), camera);
                         towerTargetingControls.show(
                             occupied.getSlotId(), occupied.getX(), occupied.getY(), camera);
                         return true;
@@ -244,6 +257,7 @@ public final class GameScreen extends ScreenAdapter {
                     BuildSlot nearest = findNearestFreeSlot(wx, wy, 48f);
                     if (nearest != null) {
                         towerTargetingControls.hide();
+                        towerUpgradeBar.hide();
                         towerSellBar.hide();
                         lastTouchedSlotId = nearest.getSlotId();
                         buildSlotPopup.show(
@@ -251,6 +265,7 @@ public final class GameScreen extends ScreenAdapter {
                         return true;
                     }
                     towerTargetingControls.hide();
+                    towerUpgradeBar.hide();
                     towerSellBar.hide();
                 }
 
@@ -385,6 +400,7 @@ public final class GameScreen extends ScreenAdapter {
         hud.resize(width, height);
         buildSlotPopup.resize(width, height);
         towerSellBar.resize(width, height);
+        towerUpgradeBar.resize(width, height);
         towerTargetingControls.resize(width, height);
         waveStartControls.resize(width, height);
         gameSpeedControls.resize(width, height);
@@ -409,6 +425,7 @@ public final class GameScreen extends ScreenAdapter {
         eventUiFx.dispose();
         buildSlotPopup.dispose();
         towerSellBar.dispose();
+        towerUpgradeBar.dispose();
         towerTargetingControls.dispose();
         waveStartControls.dispose();
         gameSpeedControls.dispose();
