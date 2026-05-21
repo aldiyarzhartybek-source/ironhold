@@ -7,6 +7,7 @@ import com.ironhold.game.model.BuildSlot;
 import com.ironhold.game.model.EconomyState;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
+import com.ironhold.game.model.TowerTargetingPriority;
 
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,7 @@ public final class BuildSystem {
             Math.max(MIN_RUNTIME_TOWER_RANGE, tower.getRange()),
             Math.max(MIN_RUNTIME_TOWER_DAMAGE, tower.getDamage()),
             Math.max(MIN_RUNTIME_TOWER_FIRE_RATE_SEC, tower.getFireRateSec()),
-            tower.getTargetingPriority()
+            TowerTargetingPriority.FIRST
         ));
         eventBus.publish(new TowerBuiltEvent(tower.getId(), slot.getSlotId(), tower.getCost()));
         return GameFacade.BuildPlacementResult.OK;

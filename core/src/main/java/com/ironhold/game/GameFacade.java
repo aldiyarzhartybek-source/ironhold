@@ -9,6 +9,7 @@ import com.ironhold.game.model.EconomyState;
 import com.ironhold.game.model.Enemy;
 import com.ironhold.game.model.PlacedTower;
 import com.ironhold.game.model.Tower;
+import com.ironhold.game.model.TowerTargetingPriority;
 import com.ironhold.config.LevelCatalog;
 import com.ironhold.game.model.LevelDefinition;
 import com.ironhold.game.model.WaveDefinition;
@@ -267,6 +268,32 @@ public final class GameFacade {
             return;
         }
         runtimeState.setSelectedTowerId(towers.get(index).getId());
+    }
+
+    public TowerTargetingPriority getPlacedTowerTargeting(String slotId) {
+        PlacedTower tower = findPlacedTowerBySlot(slotId);
+        return tower != null ? tower.getTargetingPriority() : null;
+    }
+
+    public boolean setPlacedTowerTargeting(String slotId, TowerTargetingPriority priority) {
+        PlacedTower tower = findPlacedTowerBySlot(slotId);
+        if (tower == null || priority == null) {
+            return false;
+        }
+        tower.setTargetingPriority(priority);
+        return true;
+    }
+
+    private PlacedTower findPlacedTowerBySlot(String slotId) {
+        if (slotId == null) {
+            return null;
+        }
+        for (PlacedTower tower : runtimeState.getPlacedTowers()) {
+            if (slotId.equals(tower.getSlotId())) {
+                return tower;
+            }
+        }
+        return null;
     }
 
     public int getSellRefundForSlot(String slotId) {
