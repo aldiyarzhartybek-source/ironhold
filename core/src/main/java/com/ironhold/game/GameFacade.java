@@ -301,11 +301,29 @@ public final class GameFacade {
         if (slot == null || !slot.isOccupied() || slot.getTowerId() == null) {
             return 0;
         }
-        return buildSystem.calculateSellRefund(slot.getTowerId());
+        return buildSystem.calculateSellRefundForSlot(runtimeState, slotId);
     }
 
     public boolean trySellPlacedTower(String slotId) {
         return buildSystem.trySellTower(runtimeState, slotId);
+    }
+
+    public int getPlacedTowerLevel(String slotId) {
+        PlacedTower tower = findPlacedTowerBySlot(slotId);
+        return tower != null ? tower.getLevel() : 0;
+    }
+
+    public int getPlacedTowerUpgradeCost(String slotId) {
+        return buildSystem.getUpgradeCost(runtimeState, slotId);
+    }
+
+    public boolean canAffordPlacedTowerUpgrade(String slotId) {
+        int cost = getPlacedTowerUpgradeCost(slotId);
+        return cost > 0 && economy.canSpend(cost);
+    }
+
+    public boolean tryUpgradePlacedTower(String slotId) {
+        return buildSystem.tryUpgradeTower(runtimeState, slotId);
     }
 
     private BuildSlot findBuildSlot(String slotId) {
