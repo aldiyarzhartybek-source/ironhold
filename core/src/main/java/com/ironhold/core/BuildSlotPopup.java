@@ -127,7 +127,6 @@ public final class BuildSlotPopup {
             }
             Tower t = towers.get(i);
             if (gold >= t.getCost()) {
-                game.selectTower(t.getId());
                 BuildSlot slot = findSlot(pendingSlotId);
                 if (slot != null) {
                     game.tryPlaceTower(slot.getX(), slot.getY(), t.getId());
@@ -324,79 +323,70 @@ public final class BuildSlotPopup {
     }
 
     private void drawMiniTower(String towerId, float cx, float cy) {
-        switch (towerId) {
-            case "lightning_tower":
-                drawMiniLightning(cx, cy);
-                break;
-            case "mortar_tower":
-                drawMiniMortar(cx, cy);
-                break;
-            case "flamethrower_tower":
-                drawMiniFlame(cx, cy);
-                break;
-            default:
-                drawMiniDart(cx, cy);
-                break;
+        if ("lightning_tower".equals(towerId)) {
+            drawMiniLightning(cx, cy);
+        } else if ("mortar_tower".equals(towerId)) {
+            drawMiniMortar(cx, cy);
+        } else if ("flamethrower_tower".equals(towerId)) {
+            drawMiniFlame(cx, cy);
+        } else {
+            drawMiniDart(cx, cy);
         }
     }
 
     private void drawMiniDart(float cx, float cy) {
-        float s = GameTheme.Draw.TOWER_SIZE * ICON_SCALE;
-        float t = GameTheme.Draw.TOWER_OUTLINE_THICK * ICON_SCALE;
-        float cr = GameTheme.Draw.TOWER_CORNER_R * ICON_SCALE;
-        float half = s * 0.5f;
-
-        shapes.setColor(GameTheme.TOWER_OUTLINE);
-        drawRoundedRect(cx - half, cy - half, s, s, cr);
-
-        float innerS = s - t * 2f;
-        float innerCr = Math.max(1f, cr - t * 0.6f);
-        shapes.setColor(GameTheme.SLOT_RECESS);
-        drawRoundedRect(cx - half + t, cy - half + t, innerS, innerS, innerCr);
-
-        drawMiniCore(cx, cy,
-            GameTheme.TOWER_CORE_BASE, GameTheme.TOWER_CORE_HIGHLIGHT, 1f);
+        drawMiniTowerBody("basic_tower", cx, cy);
     }
 
     private void drawMiniFlame(float cx, float cy) {
-        float half = GameTheme.Draw.TOWER_SIZE * ICON_SCALE * 0.5f;
-        float t = GameTheme.Draw.TOWER_OUTLINE_THICK * ICON_SCALE;
-
-        shapes.setColor(GameTheme.FLAME_OUTLINE);
-        drawFilledTriangleUp(cx, cy, half);
-
-        shapes.setColor(GameTheme.SLOT_RECESS);
-        drawFilledTriangleUp(cx, cy, Math.max(3f, half - t));
-
-        float coreY = cy - GameTheme.Draw.TOWER_SIZE * ICON_SCALE * 0.08f;
-        drawMiniCore(cx, coreY, GameTheme.FLAME_CORE_GLOW, GameTheme.FLAME_CORE, 1.2f);
+        drawMiniTowerBody("flamethrower_tower", cx, cy);
     }
 
     private void drawMiniMortar(float cx, float cy) {
-        float half = GameTheme.Draw.TOWER_SIZE * ICON_SCALE * 0.5f
-            * GameTheme.Draw.MORTAR_TOWER_SCALE;
-        float t = (GameTheme.Draw.TOWER_OUTLINE_THICK + 0.5f) * ICON_SCALE;
-
-        shapes.setColor(GameTheme.MORTAR_OUTLINE);
-        drawFilledHexagon(cx, cy, half);
-
-        shapes.setColor(GameTheme.SLOT_RECESS);
-        drawFilledHexagon(cx, cy, Math.max(3f, half - t));
-
-        drawMiniCore(cx, cy, GameTheme.MORTAR_CORE_GLOW, GameTheme.MORTAR_CORE, 1.35f);
+        drawMiniTowerBody("mortar_tower", cx, cy);
     }
 
     private void drawMiniLightning(float cx, float cy) {
-        float half = GameTheme.Draw.TOWER_SIZE * ICON_SCALE * 0.5f;
+        drawMiniTowerBody("lightning_tower", cx, cy);
+    }
+
+    private void drawMiniTowerBody(String towerId, float cx, float cy) {
+        GameTheme.TowerStyle style = GameTheme.towerStyle(towerId);
         float t = GameTheme.Draw.TOWER_OUTLINE_THICK * ICON_SCALE;
 
-        shapes.setColor(GameTheme.LIGHTNING_OUTLINE);
-        drawFilledDiamond(cx, cy, half);
+        if ("lightning_tower".equals(towerId)) {
+            float half = GameTheme.Draw.TOWER_SIZE * ICON_SCALE * 0.5f;
+            shapes.setColor(style.bodyOuter);
+            drawFilledDiamond(cx, cy, half);
+            shapes.setColor(style.bodyInner);
+            drawFilledDiamond(cx, cy, Math.max(3f, half - t));
+        } else if ("mortar_tower".equals(towerId)) {
+            float half = GameTheme.Draw.TOWER_SIZE * ICON_SCALE * 0.5f
+                * GameTheme.Draw.MORTAR_TOWER_SCALE;
+            shapes.setColor(style.bodyOuter);
+            drawFilledHexagon(cx, cy, half);
+            shapes.setColor(style.bodyInner);
+            drawFilledHexagon(cx, cy, Math.max(3f, half - t));
+        } else if ("flamethrower_tower".equals(towerId)) {
+            float half = GameTheme.Draw.TOWER_SIZE * ICON_SCALE * 0.5f;
+            shapes.setColor(style.bodyOuter);
+            drawFilledTriangleUp(cx, cy, half);
+            shapes.setColor(style.bodyInner);
+            drawFilledTriangleUp(cx, cy, Math.max(3f, half - t));
+        } else {
+            float s = GameTheme.Draw.TOWER_SIZE * ICON_SCALE;
+            float cr = GameTheme.Draw.TOWER_CORNER_R * ICON_SCALE;
+            float half = s * 0.5f;
+            shapes.setColor(style.bodyOuter);
+            drawRoundedRect(cx - half, cy - half, s, s, cr);
+            float innerS = s - t * 2f;
+            float innerCr = Math.max(1f, cr - t * 0.6f);
+            shapes.setColor(style.bodyInner);
+            drawRoundedRect(cx - half + t, cy - half + t, innerS, innerS, innerCr);
+        }
 
-        shapes.setColor(GameTheme.SLOT_RECESS);
-        drawFilledDiamond(cx, cy, Math.max(3f, half - t));
-
-        drawMiniCore(cx, cy, GameTheme.LIGHTNING_GLOW, GameTheme.LIGHTNING_CORE, 1f);
+        drawMiniCore(cx, cy + style.coreOffsetY * ICON_SCALE,
+            style.coreGlow, style.coreHot, style.coreRadiusMult);
     }
 
     private void drawMiniCore(float cx, float cy, Color glow, Color core, float radiusMult) {

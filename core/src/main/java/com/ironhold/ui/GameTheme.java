@@ -31,14 +31,16 @@ public final class GameTheme {
 
     // --- Shadow ---
 
-    // --- Tower ---
-    public static final Color TOWER_OUTLINE = Color.WHITE;
-    /** Pulsing core in the middle of the base — alive feeling between shots. */
-    public static final Color TOWER_CORE_BASE      = withAlpha(hex("1ECFBF"), 0.95f);
-    public static final Color TOWER_CORE_HIGHLIGHT = withAlpha(Color.WHITE, 0.85f);
+    // --- Basic (dart) tower ---
+    public static final Color BASIC_BODY_OUTER = PATH_TEAL;
+    public static final Color BASIC_BODY_INNER = new Color(0.06f, 0.26f, 0.24f, 1.00f);
+    public static final Color BASIC_CORE_GLOW = new Color(0.12f, 0.75f, 0.68f, 0.55f);
+    public static final Color BASIC_CORE      = new Color(0.80f, 0.98f, 1.00f, 1.00f);
 
     // --- Enemy ---
     public static final Color ENEMY_OUTLINE = withAlpha(Color.WHITE, 0.90f);
+    public static final Color ENEMY_HP_BAR_BG     = new Color(0.06f, 0.10f, 0.08f, 0.85f);
+    public static final Color ENEMY_HP_BAR_FILL   = new Color(0.25f, 0.92f, 0.38f, 0.95f);
     // --- Projectile (energy beam + trail) ---
     /** Hot bright core of the beam. */
     public static final Color PROJECTILE_CORE     = Color.WHITE;
@@ -48,24 +50,28 @@ public final class GameTheme {
     public static final Color PROJECTILE_TRAIL    = withAlpha(hex("8FF5E8"), 0.55f);
 
     // --- Flamethrower tower ---
-    public static final Color FLAME_OUTLINE = Color.WHITE;
-    public static final Color FLAME_CORE     = hex("FF5500");
-    public static final Color FLAME_CORE_GLOW = new Color(1.00f, 0.35f, 0.10f, 0.9f);
+    public static final Color FLAME_BODY_OUTER = new Color(1.00f, 0.42f, 0.06f, 1.00f);
+    public static final Color FLAME_BODY_INNER = new Color(0.32f, 0.09f, 0.02f, 1.00f);
+    public static final Color FLAME_CORE_GLOW = new Color(1.00f, 0.35f, 0.10f, 0.55f);
+    public static final Color FLAME_CORE      = new Color(1.00f, 0.95f, 0.45f, 1.00f);
     public static final Color FLAME_YELLOW   = new Color(1.00f, 0.95f, 0.25f, 0.75f);
     public static final Color FLAME_RED      = new Color(1.00f, 0.22f, 0.08f, 0.65f);
 
     // --- Mortar tower ---
-    public static final Color MORTAR_OUTLINE   = Color.WHITE;
-    public static final Color MORTAR_CORE      = hex("8B1538");
-    public static final Color MORTAR_CORE_GLOW = new Color(0.55f, 0.12f, 0.22f, 0.9f);
+    public static final Color MORTAR_BODY_OUTER = new Color(0.92f, 0.26f, 0.36f, 1.00f);
+    public static final Color MORTAR_BODY_INNER = new Color(0.32f, 0.06f, 0.12f, 1.00f);
+    public static final Color MORTAR_CORE_GLOW = new Color(0.55f, 0.12f, 0.22f, 0.55f);
+    public static final Color MORTAR_CORE      = new Color(1.00f, 0.72f, 0.82f, 1.00f);
     public static final Color MORTAR_SHELL     = new Color(0.70f, 0.18f, 0.22f, 1f);
     public static final Color MORTAR_SHELL_GLOW = new Color(0.90f, 0.35f, 0.25f, 0.45f);
+    /** Hot spot on in-flight mortar shell (separate from tower core). */
+    public static final Color MORTAR_SHELL_HOT = hex("8B1538");
     public static final Color MORTAR_BLAST_RING = new Color(1.00f, 0.45f, 0.20f, 0.55f);
     public static final Color MORTAR_BLAST_CORE = new Color(0.04f, 0.04f, 0.13f, 0.9f);
 
     // --- Lightning tower ---
-    /** Bright neon-violet diamond outline and core. */
-    public static final Color LIGHTNING_OUTLINE = hex("CC44FF");
+    public static final Color LIGHTNING_BODY_OUTER = hex("CC44FF");
+    public static final Color LIGHTNING_BODY_INNER = new Color(0.20f, 0.06f, 0.36f, 1.00f);
     public static final Color LIGHTNING_CORE    = new Color(0.85f, 0.95f, 1.00f, 1.00f);
     /** Wide outer glow drawn around the bolt. */
     public static final Color LIGHTNING_GLOW    = new Color(0.55f, 0.20f, 1.00f, 0.55f);
@@ -118,6 +124,57 @@ public final class GameTheme {
         return Color.valueOf(hexRgb);
     }
 
+    /** Body fill + pulsing core colours for one tower type. */
+    public static final class TowerStyle {
+        public final Color bodyOuter;
+        public final Color bodyInner;
+        public final Color coreGlow;
+        public final Color coreHot;
+        public final float coreRadiusMult;
+        public final float coreOffsetY;
+
+        public TowerStyle(
+            Color bodyOuter,
+            Color bodyInner,
+            Color coreGlow,
+            Color coreHot,
+            float coreRadiusMult,
+            float coreOffsetY
+        ) {
+            this.bodyOuter = bodyOuter;
+            this.bodyInner = bodyInner;
+            this.coreGlow = coreGlow;
+            this.coreHot = coreHot;
+            this.coreRadiusMult = coreRadiusMult;
+            this.coreOffsetY = coreOffsetY;
+        }
+    }
+
+    public static TowerStyle towerStyle(String towerId) {
+        if ("lightning_tower".equals(towerId)) {
+            return new TowerStyle(
+                LIGHTNING_BODY_OUTER, LIGHTNING_BODY_INNER,
+                LIGHTNING_GLOW, LIGHTNING_CORE, 1.0f, 0f);
+        }
+        if ("mortar_tower".equals(towerId)) {
+            return new TowerStyle(
+                MORTAR_BODY_OUTER, MORTAR_BODY_INNER,
+                MORTAR_CORE_GLOW, MORTAR_CORE, 1.35f, 0f);
+        }
+        if ("flamethrower_tower".equals(towerId)) {
+            return new TowerStyle(
+                FLAME_BODY_OUTER, FLAME_BODY_INNER,
+                FLAME_CORE_GLOW, FLAME_CORE, 1.2f, -Draw.TOWER_SIZE * 0.08f);
+        }
+        return basicTowerStyle();
+    }
+
+    private static TowerStyle basicTowerStyle() {
+        return new TowerStyle(
+            BASIC_BODY_OUTER, BASIC_BODY_INNER,
+            BASIC_CORE_GLOW, BASIC_CORE, 1.0f, 0f);
+    }
+
     /** Shared layout numbers for world drawing. */
     public static final class Draw {
         // Wall / groove geometry
@@ -156,6 +213,9 @@ public final class GameTheme {
         // Enemy
         public static final float ENEMY_OUTLINE_THICK = 2.5f;
         public static final float ENEMY_RADIUS         = 10f;
+        public static final float ENEMY_HP_BAR_WIDTH  = 22f;
+        public static final float ENEMY_HP_BAR_HEIGHT = 3.5f;
+        public static final float ENEMY_HP_BAR_OFFSET = 6f;
         /** Peak scale multiplier applied to an enemy at the start of a hit flash. */
         public static final float ENEMY_HIT_FLASH_SCALE = 1.22f;
 

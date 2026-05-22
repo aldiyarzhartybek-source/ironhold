@@ -10,7 +10,7 @@ public final class FlamethrowerAttackStrategy implements AttackStrategy {
 
     private static final float FLAME_CONE_DURATION_SEC = 0.32f;
     private static final float FLAME_CONE_HALF_ANGLE_RAD = 0.26f;
-    private static final float FLAME_CONE_RANGE_MULT = 0.55f;
+    private static final float FLAME_CONE_RANGE_MULT = 0.72f;
 
     @Override
     public void fire(PlacedTower tower, ActiveEnemy primary, GameRuntimeState state) {
