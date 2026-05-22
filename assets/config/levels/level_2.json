@@ -3,5 +3,18 @@
   "levelNumber": 2,
   "map": "maps/level0.tmx",
   "startingGold": 165,
-  "wavesConfig": "config/waves.json"
+  "wavesConfig": "config/waves/level_2_waves.json",
+  "enemyPath": [
+    {"x": 64, "y": 120},
+    {"x": 280, "y": 120},
+    {"x": 280, "y": 280},
+    {"x": 520, "y": 280},
+    {"x": 520, "y": 380},
+    {"x": 760, "y": 380}
+  ],
+  "buildSlots": [
+    {"slotId": "slot-1", "x": 180, "y": 200},
+    {"slotId": "slot-2", "x": 420, "y": 140},
+    {"slotId": "slot-3", "x": 620, "y": 340}
+  ]
 }

@@ -1,6 +1,7 @@
 package com.ironhold.game.model;
 
 import com.ironhold.config.dto.WaveEntryDto;
+import com.ironhold.config.dto.WaveSpawnEntryDto;
 import com.ironhold.config.dto.WavesConfigDto;
 
 import java.util.ArrayList;
@@ -17,11 +18,26 @@ public final class WaveDefinitionFactory {
 
     public static WaveDefinition fromEntry(WaveEntryDto entry) {
         Objects.requireNonNull(entry, "entry");
+        if (entry.spawns != null && !entry.spawns.isEmpty()) {
+            List<WaveSpawnGroup> groups = new ArrayList<>();
+            for (WaveSpawnEntryDto spawn : entry.spawns) {
+                if (spawn == null || spawn.enemyId == null || spawn.enemyId.isBlank()) {
+                    continue;
+                }
+                groups.add(new WaveSpawnGroup(
+                    spawn.enemyId.trim(),
+                    spawn.count,
+                    spawn.spawnIntervalSec
+                ));
+            }
+            if (!groups.isEmpty()) {
+                return new WaveDefinition(groups);
+            }
+        }
         return new WaveDefinition(
             entry.enemyId,
             entry.count,
-            entry.spawnIntervalSec,
-            entry.isBossWave
+            entry.spawnIntervalSec
         );
     }
 

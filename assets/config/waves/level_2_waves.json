@@ -1,0 +1,23 @@
+{
+  "waves": [
+    {
+      "spawns": [
+        {"enemyId": "grunt", "count": 7, "spawnIntervalSec": 1.05},
+        {"enemyId": "runner", "count": 4, "spawnIntervalSec": 0.95}
+      ]
+    },
+    {
+      "spawns": [
+        {"enemyId": "runner", "count": 6, "spawnIntervalSec": 0.9},
+        {"enemyId": "grunt", "count": 5, "spawnIntervalSec": 1.0}
+      ]
+    },
+    {
+      "spawns": [
+        {"enemyId": "grunt", "count": 5, "spawnIntervalSec": 1.0},
+        {"enemyId": "runner", "count": 3, "spawnIntervalSec": 0.9}
+      ]
+    },
+    {"enemyId": "boss", "count": 1, "spawnIntervalSec": 1.4}
+  ]
+}

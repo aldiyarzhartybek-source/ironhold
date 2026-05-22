@@ -1,0 +1,41 @@
+{
+  "waves": [
+    {
+      "spawns": [
+        {"enemyId": "grunt", "count": 10, "spawnIntervalSec": 1.0},
+        {"enemyId": "runner", "count": 5, "spawnIntervalSec": 0.9}
+      ]
+    },
+    {
+      "spawns": [
+        {"enemyId": "runner", "count": 10, "spawnIntervalSec": 0.8},
+        {"enemyId": "grunt", "count": 5, "spawnIntervalSec": 0.95}
+      ]
+    },
+    {
+      "spawns": [
+        {"enemyId": "grunt", "count": 7, "spawnIntervalSec": 1.0},
+        {"enemyId": "elite", "count": 4, "spawnIntervalSec": 1.15}
+      ]
+    },
+    {
+      "spawns": [
+        {"enemyId": "runner", "count": 8, "spawnIntervalSec": 0.8},
+        {"enemyId": "elite", "count": 5, "spawnIntervalSec": 1.1}
+      ]
+    },
+    {
+      "spawns": [
+        {"enemyId": "elite", "count": 6, "spawnIntervalSec": 1.1},
+        {"enemyId": "grunt", "count": 6, "spawnIntervalSec": 1.0}
+      ]
+    },
+    {
+      "spawns": [
+        {"enemyId": "runner", "count": 6, "spawnIntervalSec": 0.75},
+        {"enemyId": "elite", "count": 4, "spawnIntervalSec": 1.1}
+      ]
+    },
+    {"enemyId": "boss", "count": 1, "spawnIntervalSec": 1.5}
+  ]
+}

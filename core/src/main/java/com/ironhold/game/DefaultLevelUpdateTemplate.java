@@ -26,7 +26,7 @@ public final class DefaultLevelUpdateTemplate extends LevelUpdateTemplate {
 
     @Override
     protected void updateLevelState(LevelUpdateFrameContext context) {
-        context.getLevelState().update(context.getScaledDeltaSec());
+        context.getLevelState().update(context.getRealDeltaSec());
     }
 
     @Override

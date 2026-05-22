@@ -3,20 +3,17 @@
     {
       "enemyId": "grunt",
       "count": 5,
-      "spawnIntervalSec": 1.0,
-      "isBossWave": false
+      "spawnIntervalSec": 1.0
     },
     {
       "enemyId": "runner",
       "count": 4,
-      "spawnIntervalSec": 0.85,
-      "isBossWave": false
+      "spawnIntervalSec": 0.85
     },
     {
       "enemyId": "boss",
       "count": 1,
-      "spawnIntervalSec": 1.2,
-      "isBossWave": true
+      "spawnIntervalSec": 1.2
     }
   ]
 }

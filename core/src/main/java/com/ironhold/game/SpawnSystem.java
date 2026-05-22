@@ -7,6 +7,7 @@ import com.ironhold.game.model.ActiveEnemy;
 import com.ironhold.game.model.Enemy;
 import com.ironhold.level.WavePhase;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -14,6 +15,7 @@ import java.util.Objects;
  * Converts pending wave spawns into active runtime enemies.
  */
 public final class SpawnSystem {
+
     private final EventBus eventBus;
     private final Map<String, Enemy> enemiesById;
 
@@ -33,19 +35,22 @@ public final class SpawnSystem {
 
     private void spawnEnemy(GameRuntimeState state, String enemyId) {
         Enemy template = enemiesById.get(enemyId);
-        if (template == null || state.getEnemyPath().isEmpty()) {
+        List<Vector2> path = state.getEnemyPath();
+        if (template == null || path.isEmpty()) {
             return;
         }
-        Vector2 spawn = state.getEnemyPath().get(0);
+
+        int scaledHp = scaleHp(template.getMaxHp(), state.getLevelHpMultiplier());
+        Vector2 gate = path.get(0);
         ActiveEnemy enemy = new ActiveEnemy(
             "enemy-" + state.getNextEnemyInstanceId(),
             template.getId(),
-            template.getMaxHp(),
-            template.getCurrentHp(),
+            scaledHp,
+            scaledHp,
             template.getSpeed(),
             template.getReward(),
-            spawn.x,
-            spawn.y,
+            gate.x,
+            gate.y,
             1
         );
         state.getActiveEnemies().add(enemy);
@@ -54,5 +59,9 @@ public final class SpawnSystem {
             enemy.getEnemyId(),
             state.getRuntimeLevelState().getCurrentWaveNumber()
         ));
+    }
+
+    private static int scaleHp(int baseHp, float multiplier) {
+        return Math.max(1, Math.round(baseHp * Math.max(1f, multiplier)));
     }
 }

@@ -2,6 +2,7 @@ package com.ironhold.config;
 
 import com.badlogic.gdx.utils.Json;
 import com.ironhold.config.dto.LevelConfigDto;
+import com.ironhold.game.model.GameModelMapper;
 import com.ironhold.game.model.LevelDefinition;
 import com.ironhold.game.model.WaveDefinition;
 import com.ironhold.game.model.WaveDefinitionFactory;
@@ -38,10 +39,6 @@ public final class LevelCatalog {
         return levelsByNumber.get(levelNumber);
     }
 
-    public int getLevelCount() {
-        return levelsByNumber.size();
-    }
-
     private static LevelDefinition resolveLevel(int levelNumber, GameConfig gameConfig) {
         LevelConfigDto dto = loadLevelDto(levelNumber);
         if (dto.levelNumber <= 0) {
@@ -60,7 +57,13 @@ public final class LevelCatalog {
         List<WaveDefinition> waves = WaveDefinitionFactory.fromLevelWaves(
             gameConfig.loadWavesConfig(dto.wavesConfig)
         );
-        return new LevelDefinition(levelNumber, dto.levelId.trim(), dto.map.trim(), startingGold, waves);
+        return new LevelDefinition(
+            levelNumber,
+            startingGold,
+            waves,
+            GameModelMapper.mapEnemyPath(dto.enemyPath),
+            GameModelMapper.mapBuildSlots(dto.buildSlots)
+        );
     }
 
     private static LevelConfigDto loadLevelDto(int levelNumber) {
