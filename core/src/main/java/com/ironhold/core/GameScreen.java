@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Input;
@@ -27,7 +28,6 @@ import com.ironhold.game.GameFacade;
 import com.ironhold.game.GameMode;
 import com.ironhold.game.GameRuntimeView;
 import com.ironhold.game.model.BuildSlot;
-import com.ironhold.game.model.Tower;
 import com.ironhold.core.render.EnemyShapeRenderer;
 import com.ironhold.core.render.GameplayMapRenderer;
 import com.ironhold.core.render.HitEffectRenderer;
@@ -41,7 +41,6 @@ import com.ironhold.level.LevelStatus;
 import com.ironhold.ui.GameTheme;
 import com.ironhold.ui.UiLayer;
 
-import java.util.List;
 import java.util.Objects;
 
 public final class GameScreen extends ScreenAdapter {
@@ -50,7 +49,11 @@ public final class GameScreen extends ScreenAdapter {
     private final GameFacade game;
     private final boolean debugMode;
     private final OrthographicCamera camera;
+    private final OrthographicCamera uiCamera;
+    private final FitViewport worldViewport;
     private final SpriteBatch batch;
+    private int screenWidth;
+    private int screenHeight;
     private final BitmapFont font;
     private final Texture testTexture;
     private final TiledMap map;
@@ -79,14 +82,17 @@ public final class GameScreen extends ScreenAdapter {
     private boolean endOverlayVisible;
     private LevelStatus endOverlayStatus;
     private boolean isPaused;
-    /** Last free slot the player opened the build popup on (for hotkeys 1–N). */
-    private String lastTouchedSlotId;
-
     public GameScreen(GameFacade game) {
         this.game = Objects.requireNonNull(game, "game");
         this.debugMode = game.isDebugMode();
         var assetService = game.getAssets();
         this.camera = new OrthographicCamera();
+        this.uiCamera = new OrthographicCamera();
+        this.worldViewport = new FitViewport(
+            GameplayViewport.WORLD_WIDTH,
+            GameplayViewport.WORLD_HEIGHT,
+            camera
+        );
         this.batch = new SpriteBatch();
         this.font = assetService.getFont();
         this.testTexture = assetService.getTestTexture();
@@ -163,7 +169,7 @@ public final class GameScreen extends ScreenAdapter {
         batch.begin();
         drawVisualBackdrop();
         // mapVisuals internally: batch.end → Filled shapes → Line shapes → batch.begin
-        mapVisuals.render(batch, camera.combined, view);
+        mapVisuals.render(batch, camera, view);
         // batch is now in begin() state after mapVisuals
 
         // Enemies (internally: batch.end → shapes → batch.begin)
@@ -176,7 +182,9 @@ public final class GameScreen extends ScreenAdapter {
 
         bloomPipeline.endCaptureAndRender();  // bloom applied, full scene output to screen
 
-        // ── UI — drawn after bloom so it stays crisp ───────────────────────
+        // ── UI — screen space, after bloom so it stays crisp ───────────────
+        uiCamera.update();
+        batch.setProjectionMatrix(uiCamera.combined);
         batch.begin();
         hud.render(batch, view, debugMode);
         if (!endOverlayVisible && !isPaused) {
@@ -259,7 +267,6 @@ public final class GameScreen extends ScreenAdapter {
                         towerTargetingControls.hide();
                         towerUpgradeBar.hide();
                         towerSellBar.hide();
-                        lastTouchedSlotId = nearest.getSlotId();
                         buildSlotPopup.show(
                             nearest.getSlotId(), nearest.getX(), nearest.getY(), camera);
                         return true;
@@ -269,7 +276,6 @@ public final class GameScreen extends ScreenAdapter {
                     towerSellBar.hide();
                 }
 
-                game.handlePrimaryAction(wx, wy);
                 return false;
             }
 
@@ -286,12 +292,6 @@ public final class GameScreen extends ScreenAdapter {
                 }
                 if (keycode == Input.Keys.T) {
                     gameSpeedControls.toggleSpeed();
-                    return true;
-                }
-                if (keycode >= Input.Keys.NUM_1 && keycode <= Input.Keys.NUM_9) {
-                    buildSlotPopup.hide();
-                    int towerIndex = keycode - Input.Keys.NUM_1;
-                    placeTowerByHotkey(towerIndex);
                     return true;
                 }
                 if (debugMode && keycode == Input.Keys.K) {
@@ -396,7 +396,12 @@ public final class GameScreen extends ScreenAdapter {
 
     @Override
     public void resize(int width, int height) {
-        camera.setToOrtho(false, width, height);
+        screenWidth = width;
+        screenHeight = height;
+        worldViewport.update(width, height, true);
+        GameplayViewport.applyWorldCamera(camera);
+        uiCamera.setToOrtho(false, width, height);
+        uiCamera.update();
         hud.resize(width, height);
         buildSlotPopup.resize(width, height);
         towerSellBar.resize(width, height);
@@ -474,43 +479,6 @@ public final class GameScreen extends ScreenAdapter {
         return best;
     }
 
-    private BuildSlot findSlotById(String slotId) {
-        if (slotId == null) {
-            return null;
-        }
-        for (BuildSlot slot : game.getBuildSlots()) {
-            if (slot.getSlotId().equals(slotId)) {
-                return slot;
-            }
-        }
-        return null;
-    }
-
-    private void placeTowerByHotkey(int towerIndex) {
-        List<Tower> towers = game.getTowers();
-        if (towerIndex < 0 || towerIndex >= towers.size()) {
-            return;
-        }
-        Tower tower = towers.get(towerIndex);
-        game.selectTower(tower.getId());
-
-        if (lastTouchedSlotId == null) {
-            return;
-        }
-        BuildSlot slot = findSlotById(lastTouchedSlotId);
-        if (slot == null || slot.isOccupied()) {
-            return;
-        }
-        if (game.getRuntimeView().getGold() < tower.getCost()) {
-            return;
-        }
-        game.tryPlaceTower(slot.getX(), slot.getY(), tower.getId());
-        BuildSlot updated = findSlotById(lastTouchedSlotId);
-        if (updated != null && updated.isOccupied()) {
-            lastTouchedSlotId = null;
-        }
-    }
-
     // ══════════════════════════════════════════════════════════════════════
     // Draw helpers
     // ══════════════════════════════════════════════════════════════════════
@@ -528,14 +496,18 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     private void drawVisualBackdrop() {
-        float width  = camera.viewportWidth;
-        float height = camera.viewportHeight;
+        float halfW = GameplayViewport.visibleWorldWidth(camera) * 0.5f;
+        float halfH = GameplayViewport.visibleWorldHeight(camera) * 0.5f;
+        float x = camera.position.x - halfW;
+        float y = camera.position.y - halfH;
+        float width = halfW * 2f;
+        float height = halfH * 2f;
         batch.setColor(GameTheme.BACKDROP_BASE);
-        batch.draw(testTexture, 0f, 0f, width, height);
+        batch.draw(testTexture, x, y, width, height);
         batch.setColor(GameTheme.BACKDROP_TOP_GLOW);
-        batch.draw(testTexture, 0f, 0f, width, height * 0.22f);
+        batch.draw(testTexture, x, y + height * 0.78f, width, height * 0.22f);
         batch.setColor(GameTheme.BACKDROP_FRAME);
-        batch.draw(testTexture, 16f, 16f, width - 32f, height - 32f);
+        batch.draw(testTexture, x + 16f, y + 16f, width - 32f, height - 32f);
     }
 
     private void drawFloatingRewardTexts() {
@@ -550,8 +522,8 @@ public final class GameScreen extends ScreenAdapter {
     private void drawEventOverlays() {
         GameplayUiFxReactor.BannerView banner = eventUiFx.getBannerView();
         if (banner != null) {
-            float width = camera.viewportWidth;
-            float topY  = camera.viewportHeight - 90f;
+            float width = screenWidth;
+            float topY  = screenHeight - 90f;
             batch.setColor(GameTheme.multiplyAlpha(GameTheme.BANNER_BACKGROUND, banner.getAlpha()));
             batch.draw(testTexture, width * 0.5f - 150f, topY - 26f, 300f, 34f);
             font.setColor(GameTheme.multiplyAlpha(GameTheme.BANNER_TEXT, banner.getAlpha()));
@@ -560,7 +532,7 @@ public final class GameScreen extends ScreenAdapter {
         }
 
         // Toast stack — shifted down so it clears the Gold/Time HUD row
-        float toastBaseY  = camera.viewportHeight - 62f;
+        float toastBaseY  = screenHeight - 62f;
         float toastSlotH  = 30f;
         for (GameplayUiFxReactor.ToastView toast : eventUiFx.getToastViews()) {
             float y = toastBaseY - toast.getSlotIndex() * toastSlotH;
@@ -571,8 +543,8 @@ public final class GameScreen extends ScreenAdapter {
                 batch.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_SUCCESS_BACKGROUND, toast.getAlpha()));
                 font.setColor(GameTheme.multiplyAlpha(GameTheme.TOAST_SUCCESS_TEXT, toast.getAlpha()));
             }
-            batch.draw(testTexture, camera.viewportWidth - 340f, y - 22f, 320f, 26f);
-            font.draw(batch, toast.getText(), camera.viewportWidth - 332f, y - 4f);
+            batch.draw(testTexture, screenWidth - 340f, y - 22f, 320f, 26f);
+            font.draw(batch, toast.getText(), screenWidth - 332f, y - 4f);
             font.setColor(GameTheme.UI_TEXT);
         }
     }

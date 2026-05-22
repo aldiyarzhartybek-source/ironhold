@@ -2,11 +2,13 @@ package com.ironhold.core.render;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
+import com.ironhold.core.GameplayViewport;
 import com.ironhold.game.GameRuntimeView;
 import com.ironhold.game.model.BuildSlot;
 import com.ironhold.ui.GameTheme;
@@ -47,13 +49,22 @@ public final class GameplayMapRenderer {
     // ══════════════════════════════════════════════════════════════════════
 
     /** Renders the map. Leaves {@code batch} in {@code begin()} state when done. */
-    public void render(SpriteBatch batch, Matrix4 projectionMatrix, GameRuntimeView view) {
+    public void render(
+        SpriteBatch batch,
+        OrthographicCamera worldCamera,
+        GameRuntimeView view
+    ) {
         List<Vector2> path   = view.getEnemyPath();
         List<BuildSlot> slots = view.getBuildSlots();
         if (path.isEmpty()) return;
 
-        float vw = Gdx.graphics.getWidth();
-        float vh = Gdx.graphics.getHeight();
+        float halfW = GameplayViewport.visibleWorldWidth(worldCamera) * 0.5f;
+        float halfH = GameplayViewport.visibleWorldHeight(worldCamera) * 0.5f;
+        float fillX = worldCamera.position.x - halfW;
+        float fillY = worldCamera.position.y - halfH;
+        float fillW = halfW * 2f;
+        float fillH = halfH * 2f;
+        Matrix4 projectionMatrix = worldCamera.combined;
 
         batch.end();
         shapes.setProjectionMatrix(projectionMatrix);
@@ -61,7 +72,7 @@ public final class GameplayMapRenderer {
         // ── 1: teal fill — entire viewport = wall/high ground ──────────────
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(GameTheme.WALL_COLOR);
-        shapes.rect(0f, 0f, vw, vh);
+        shapes.rect(fillX, fillY, fillW, fillH);
         shapes.end();
 
         // ── 2a: opaque shadow pass — path trench + empty-slot circles ────────
