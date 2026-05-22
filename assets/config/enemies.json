@@ -2,16 +2,16 @@
   "enemies": [
     {
       "id": "grunt",
-      "hp": 100,
+      "hp": 150,
       "speed": 1.0,
       "reward": 10,
       "visualShape": "SQUARE",
       "fillColor": "F77F2A",
-      "visualScale": 1.0
+      "visualScale": 0.88
     },
     {
       "id": "runner",
-      "hp": 65,
+      "hp": 100,
       "speed": 1.45,
       "reward": 12,
       "visualShape": "TRIANGLE",
@@ -19,13 +19,22 @@
       "visualScale": 1.0
     },
     {
+      "id": "elite",
+      "hp": 250,
+      "speed": 0.95,
+      "reward": 24,
+      "visualShape": "CIRCLE",
+      "fillColor": "B24BF3",
+      "visualScale": 1.22
+    },
+    {
       "id": "boss",
-      "hp": 450,
-      "speed": 0.75,
-      "reward": 80,
+      "hp": 1950,
+      "speed": 0.72,
+      "reward": 100,
       "visualShape": "PENTAGON",
       "fillColor": "E84855",
-      "visualScale": 1.65
+      "visualScale": 1.75
     }
   ]
 }
