@@ -3,7 +3,6 @@ package com.ironhold.core;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.ironhold.game.GameRuntimeView;
-import com.ironhold.game.model.Tower;
 import com.ironhold.ui.GameTheme;
 
 import java.util.Objects;
@@ -11,8 +10,7 @@ import java.util.Objects;
 /**
  * In-game HUD.
  *
- * <p>Production row: Lives + selected tower (left) | Wave (centre) | Gold / Time / Speed (right).
- * Keys {@code 1}–{@code 4} select build tower (order in {@code towers.json}).
+ * <p>Production row: Lives (left) | Wave (centre) | Gold / Time / Speed (right).
  * <p>Debug block: shown only when {@code debugMode=true} — game state metrics,
  * event counters, spawn timers.
  */
@@ -55,7 +53,6 @@ public final class StageHud {
 
         // Left column
         font.draw(batch, "Lives: " + level.getBaseLives(), LEFT_X, topY);
-        drawSelectedTower(batch, view, LEFT_X, topY - LINE_H);
 
         // Centre
         font.draw(batch,
@@ -104,40 +101,6 @@ public final class StageHud {
         font.draw(batch, "Ev WaveCompleted: " + view.getWaveCompletedEvents(),      LEFT_X, baseY - LINE_H * 16f);
 
         font.setColor(GameTheme.UI_TEXT);
-    }
-
-    private void drawSelectedTower(SpriteBatch batch, GameRuntimeView view, float x, float y) {
-        String selectedId = view.getSelectedTowerId();
-        if (selectedId == null) {
-            font.draw(batch, "Tower: —  (1–4 to select)", x, y);
-            return;
-        }
-        int index = 0;
-        Tower selected = null;
-        for (int i = 0; i < view.getAvailableTowers().size(); i++) {
-            Tower t = view.getAvailableTowers().get(i);
-            if (selectedId.equals(t.getId())) {
-                index = i + 1;
-                selected = t;
-                break;
-            }
-        }
-        if (selected == null) {
-            font.draw(batch, "Tower: " + selectedId, x, y);
-            return;
-        }
-        font.draw(batch,
-            "Tower [" + index + "]: " + towerDisplayName(selected.getId())
-                + " (" + selected.getCost() + "g)",
-            x, y);
-    }
-
-    private static String towerDisplayName(String id) {
-        if ("basic_tower".equals(id)) return "Dart";
-        if ("mortar_tower".equals(id)) return "Mortar";
-        if ("lightning_tower".equals(id)) return "Lightning";
-        if ("flamethrower_tower".equals(id)) return "Flamethrower";
-        return id;
     }
 
     private static String speedLabel(float timeScale) {

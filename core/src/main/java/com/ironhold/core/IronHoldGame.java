@@ -2,7 +2,6 @@ package com.ironhold.core;
 
 import com.badlogic.gdx.Game;
 import com.ironhold.assets.AssetService;
-import com.ironhold.events.GameStartedEvent;
 import com.ironhold.events.SimpleEventBus;
 import com.ironhold.game.GameContext;
 import com.ironhold.game.GameFacade;
@@ -42,14 +41,12 @@ public class IronHoldGame extends Game {
             GameModelMapper.mapEnemies(config),
             GameModelMapper.mapTowers(config),
             levelCatalog,
-            GameModelMapper.defaultBuildSlots(),
             GameModelMapper.mapEconomy(config)
         );
         screens.register(ScreenId.LOADING, () -> new LoadingScreen(facade));
         screens.register(ScreenId.MENU, () -> new MenuScreen(facade));
         screens.register(ScreenId.LEVEL_SELECT, () -> new LevelSelectScreen(facade));
         screens.register(ScreenId.GAME, () -> new GameScreen(facade));
-        facade.getEventBus().publish(new GameStartedEvent());
         screens.goTo(ScreenId.LOADING);
     }
 
