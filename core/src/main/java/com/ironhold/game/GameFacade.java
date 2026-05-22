@@ -1,6 +1,5 @@
 package com.ironhold.game;
 
-import com.badlogic.gdx.math.Vector2;
 import com.ironhold.assets.AssetService;
 import com.ironhold.events.EventBus;
 import com.ironhold.game.model.ActiveEnemy;
@@ -18,7 +17,6 @@ import com.ironhold.level.LevelStatus;
 import com.ironhold.level.RuntimeLevelState;
 import com.ironhold.save.ProgressService;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +33,6 @@ public final class GameFacade {
     private final List<Enemy> enemies;
     private final List<Tower> towers;
     private final LevelCatalog levelCatalog;
-    private final List<BuildSlot> initialBuildSlots;
     private final EconomyState economy;
     private final Map<String, Enemy> enemiesById;
     private final Map<String, Tower> towersById;
@@ -73,7 +70,6 @@ public final class GameFacade {
         List<Enemy> enemies,
         List<Tower> towers,
         LevelCatalog levelCatalog,
-        List<BuildSlot> buildSlots,
         EconomyState economy
     ) {
         this.context = Objects.requireNonNull(context, "context");
@@ -83,7 +79,6 @@ public final class GameFacade {
         this.enemies = List.copyOf(Objects.requireNonNull(enemies, "enemies"));
         this.towers = List.copyOf(Objects.requireNonNull(towers, "towers"));
         this.levelCatalog = Objects.requireNonNull(levelCatalog, "levelCatalog");
-        this.initialBuildSlots = List.copyOf(Objects.requireNonNull(buildSlots, "buildSlots"));
         this.economy = Objects.requireNonNull(economy, "economy");
         this.enemiesById = indexEnemiesById(this.enemies);
         this.towersById = indexTowersById(this.towers);
@@ -91,10 +86,10 @@ public final class GameFacade {
         LevelDefinition initialLevel = requireLevel(1);
         this.runtimeState = new GameRuntimeState(
             new RuntimeLevelState(initialLevel.getWaves()),
-            this.initialBuildSlots,
-            defaultEnemyPath(),
-            this.towers.isEmpty() ? null : this.towers.get(0).getId()
+            initialLevel.getBuildSlots(),
+            initialLevel.getEnemyPath()
         );
+        runtimeState.setLevelHpMultiplier(1);
         this.buildSystem = new BuildSystem(getEventBus(), this.economy, this.towersById);
         this.spawnSystem = new SpawnSystem(getEventBus(), this.enemiesById);
         this.combatSystem = new CombatRuntimeSystem(getEventBus(), this.economy);
@@ -107,10 +102,6 @@ public final class GameFacade {
         );
         this.gameMode = GameMode.CLASSIC;
         this.lastBuildPlacementResult = BuildPlacementResult.SLOT_NOT_FOUND;
-    }
-
-    public GameContext getContext() {
-        return context;
     }
 
     public ProgressService getProgressService() {
@@ -152,10 +143,6 @@ public final class GameFacade {
         return screens;
     }
 
-    public List<Enemy> getEnemies() {
-        return enemies;
-    }
-
     public Map<String, Enemy> getEnemiesById() {
         return enemiesById;
     }
@@ -164,65 +151,21 @@ public final class GameFacade {
         return towers;
     }
 
-    public LevelCatalog getLevelCatalog() {
-        return levelCatalog;
-    }
-
-    public LevelDefinition getCurrentLevelDefinition() {
-        return requireLevel(currentLevelNumber);
-    }
-
     public int getLevelStartingGold(int levelNumber) {
         return requireLevel(levelNumber).getStartingGold();
-    }
-
-    public List<WaveDefinition> getWaves() {
-        return getCurrentLevelDefinition().getWaves();
     }
 
     public List<BuildSlot> getBuildSlots() {
         return List.copyOf(runtimeState.getBuildSlots());
     }
 
-    public EconomyState getEconomy() {
-        return economy;
-    }
-
-    public List<ActiveEnemy> getActiveEnemies() {
-        return List.copyOf(runtimeState.getActiveEnemies());
-    }
-
-    public List<PlacedTower> getPlacedTowers() {
-        return List.copyOf(runtimeState.getPlacedTowers());
-    }
-
     public RuntimeLevelState getRuntimeLevelState() {
         return runtimeState.getRuntimeLevelState();
     }
 
-    public BuildPlacementResult getLastBuildPlacementResult() {
-        return lastBuildPlacementResult;
-    }
-
-    public int getLastAwardedGold() {
-        return runtimeState.getLastAwardedGold();
-    }
-
-    public int getTotalKilledEnemies() {
-        return runtimeState.getSessionStats().getKills();
-    }
-
-    public int getTotalGoldSpent() {
-        return runtimeState.getSessionStats().getGoldSpent();
-    }
-
-    public GameplayEventTracker getEventTracker() {
-        return eventTracker;
-    }
-
     public GameRuntimeView getRuntimeView() {
         return GameRuntimeView.builder()
-            .fromRuntime(runtimeState, eventTracker, towers)
+            .fromRuntime(runtimeState, eventTracker)
             .gold(economy.getGold())
             .lastBuildPlacementResult(lastBuildPlacementResult)
             .gameMode(gameMode)
@@ -234,40 +177,8 @@ public final class GameFacade {
         eventTracker.dispose();
     }
 
-    public void handlePrimaryAction(float worldX, float worldY) {
-        tryPlaceTowerAt(worldX, worldY);
-    }
-
     public void handleDebugKillAction() {
         combatSystem.debugDefeatFirstEnemy(runtimeState);
-    }
-
-    public boolean tryPlaceTowerAt(float worldX, float worldY) {
-        if (towers.isEmpty() || runtimeState.getSelectedTowerId() == null) {
-            lastBuildPlacementResult = buildSystem.failNoTowers(worldX, worldY);
-            return false;
-        }
-        lastBuildPlacementResult = buildSystem.tryPlaceTower(
-            runtimeState,
-            runtimeState.getSelectedTowerId(),
-            worldX,
-            worldY
-        );
-        return lastBuildPlacementResult == BuildPlacementResult.OK;
-    }
-
-    public void selectTower(String towerId) {
-        if (towerId == null || !towersById.containsKey(towerId)) {
-            return;
-        }
-        runtimeState.setSelectedTowerId(towerId);
-    }
-
-    public void selectTowerByIndex(int index) {
-        if (index < 0 || index >= towers.size()) {
-            return;
-        }
-        runtimeState.setSelectedTowerId(towers.get(index).getId());
     }
 
     public TowerTargetingPriority getPlacedTowerTargeting(String slotId) {
@@ -343,10 +254,6 @@ public final class GameFacade {
         return lastBuildPlacementResult;
     }
 
-    public boolean debugDefeatFirstEnemy() {
-        return combatSystem.debugDefeatFirstEnemy(runtimeState);
-    }
-
     public GameMode getGameMode() {
         return gameMode;
     }
@@ -359,11 +266,7 @@ public final class GameFacade {
         startLevel(currentLevelNumber, gameMode);
     }
 
-    public void startLevel(GameMode mode) {
-        startLevel(currentLevelNumber, mode);
-    }
-
-    public void startLevel(int levelNumber, GameMode mode) {
+    private void startLevel(int levelNumber, GameMode mode) {
         if (!progressService.isLevelUnlocked(levelNumber)) {
             return;
         }
@@ -373,7 +276,8 @@ public final class GameFacade {
         victoryProgressRecorded = false;
         timeScale = TIME_SCALE_NORMAL;
         economy.setGold(level.getStartingGold());
-        runtimeState.resetForNewLevel(initialBuildSlots);
+        runtimeState.resetForNewLevel(level.getBuildSlots(), level.getEnemyPath());
+        runtimeState.setLevelHpMultiplier(levelNumber);
         RuntimeLevelState levelState = runtimeState.getRuntimeLevelState();
         levelState.setWaveSchedule(level.getWaves());
         runtimeState.getSessionStats().markStarted();
@@ -415,7 +319,9 @@ public final class GameFacade {
     public void updateLevel(float deltaSec) {
         float safeDeltaSec = Math.max(0f, deltaSec);
         float scaledDeltaSec = safeDeltaSec * timeScale;
-        levelUpdateTemplate.updateFrame(new LevelUpdateFrameContext(runtimeState, scaledDeltaSec));
+        levelUpdateTemplate.updateFrame(
+            new LevelUpdateFrameContext(runtimeState, scaledDeltaSec, safeDeltaSec)
+        );
     }
 
     private void handlePostCombatFrame(GameRuntimeState state, RuntimeLevelState levelState) {
@@ -433,14 +339,6 @@ public final class GameFacade {
         }
         progressService.recordLevelCompleted(currentLevelNumber);
         victoryProgressRecorded = true;
-    }
-
-    public float getElapsedLevelTimeSec() {
-        return runtimeState.getSessionStats().getElapsedSec();
-    }
-
-    public String getElapsedLevelTimeFormatted() {
-        return runtimeState.getSessionStats().getElapsedFormatted();
     }
 
     private void syncLevelTimerEnd(RuntimeLevelState levelState) {
@@ -482,14 +380,4 @@ public final class GameFacade {
         return level;
     }
 
-    private static List<Vector2> defaultEnemyPath() {
-        List<Vector2> path = new ArrayList<>();
-        path.add(new Vector2(64f, 332f));
-        path.add(new Vector2(220f, 332f));
-        path.add(new Vector2(220f, 220f));
-        path.add(new Vector2(460f, 220f));
-        path.add(new Vector2(460f, 360f));
-        path.add(new Vector2(760f, 360f));
-        return List.copyOf(path);
-    }
 }

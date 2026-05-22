@@ -9,7 +9,6 @@ import com.ironhold.game.model.LightningEffect;
 import com.ironhold.game.model.FlameConeEffect;
 import com.ironhold.game.model.MortarExplosionEffect;
 import com.ironhold.game.model.PlacedTower;
-import com.ironhold.game.model.Tower;
 import com.ironhold.level.RuntimeLevelState;
 
 import java.util.List;
@@ -42,10 +41,7 @@ public final class GameRuntimeView {
     private final int waveStartedEvents;
     private final int waveCompletedEvents;
     private final List<Vector2> enemyPath;
-    private final List<Tower> availableTowers;
-    private final String selectedTowerId;
     private final GameMode gameMode;
-    private final float elapsedLevelTimeSec;
     private final String elapsedLevelTimeFormatted;
     private final float timeScale;
 
@@ -72,10 +68,7 @@ public final class GameRuntimeView {
         int waveStartedEvents,
         int waveCompletedEvents,
         List<Vector2> enemyPath,
-        List<Tower> availableTowers,
-        String selectedTowerId,
         GameMode gameMode,
-        float elapsedLevelTimeSec,
         String elapsedLevelTimeFormatted,
         float timeScale
     ) {
@@ -101,20 +94,13 @@ public final class GameRuntimeView {
         this.waveStartedEvents = waveStartedEvents;
         this.waveCompletedEvents = waveCompletedEvents;
         this.enemyPath = List.copyOf(Objects.requireNonNull(enemyPath, "enemyPath"));
-        this.availableTowers = List.copyOf(Objects.requireNonNull(availableTowers, "availableTowers"));
-        this.selectedTowerId = selectedTowerId;
         this.gameMode = Objects.requireNonNull(gameMode, "gameMode");
-        this.elapsedLevelTimeSec = Math.max(0f, elapsedLevelTimeSec);
         this.elapsedLevelTimeFormatted = Objects.requireNonNull(elapsedLevelTimeFormatted, "elapsedLevelTimeFormatted");
         this.timeScale = Math.max(0f, timeScale);
     }
 
     public float getTimeScale() {
         return timeScale;
-    }
-
-    public float getElapsedLevelTimeSec() {
-        return elapsedLevelTimeSec;
     }
 
     public String getElapsedLevelTimeFormatted() {
@@ -213,14 +199,6 @@ public final class GameRuntimeView {
         return enemyPath;
     }
 
-    public List<Tower> getAvailableTowers() {
-        return availableTowers;
-    }
-
-    public String getSelectedTowerId() {
-        return selectedTowerId;
-    }
-
     public static Builder builder() {
         return new Builder();
     }
@@ -252,24 +230,16 @@ public final class GameRuntimeView {
         private int waveStartedEvents;
         private int waveCompletedEvents;
         private List<Vector2> enemyPath;
-        private List<Tower> availableTowers;
-        private String selectedTowerId;
         private GameMode gameMode;
-        private float elapsedLevelTimeSec;
         private String elapsedLevelTimeFormatted;
         private float timeScale;
 
         private Builder() {
         }
 
-        public Builder fromRuntime(
-            GameRuntimeState state,
-            GameplayEventTracker eventTracker,
-            List<Tower> availableTowers
-        ) {
+        public Builder fromRuntime(GameRuntimeState state, GameplayEventTracker eventTracker) {
             Objects.requireNonNull(state, "state");
             Objects.requireNonNull(eventTracker, "eventTracker");
-            Objects.requireNonNull(availableTowers, "availableTowers");
 
             levelState = state.getRuntimeLevelState();
             buildSlots = state.getBuildSlots();
@@ -291,9 +261,6 @@ public final class GameRuntimeView {
             waveStartedEvents = eventTracker.getWaveStartedEvents();
             waveCompletedEvents = eventTracker.getWaveCompletedEvents();
             enemyPath = state.getEnemyPath();
-            this.availableTowers = availableTowers;
-            selectedTowerId = state.getSelectedTowerId();
-            elapsedLevelTimeSec = state.getSessionStats().getElapsedSec();
             elapsedLevelTimeFormatted = state.getSessionStats().getElapsedFormatted();
             return this;
         }
@@ -330,7 +297,6 @@ public final class GameRuntimeView {
             Objects.requireNonNull(flameConeEffects, "flameConeEffects");
             Objects.requireNonNull(lastBuildPlacementResult, "lastBuildPlacementResult");
             Objects.requireNonNull(enemyPath, "enemyPath");
-            Objects.requireNonNull(availableTowers, "availableTowers");
             Objects.requireNonNull(gameMode, "gameMode");
             Objects.requireNonNull(elapsedLevelTimeFormatted, "elapsedLevelTimeFormatted");
 
@@ -357,10 +323,7 @@ public final class GameRuntimeView {
                 waveStartedEvents,
                 waveCompletedEvents,
                 enemyPath,
-                availableTowers,
-                selectedTowerId,
                 gameMode,
-                elapsedLevelTimeSec,
                 elapsedLevelTimeFormatted,
                 timeScale
             );

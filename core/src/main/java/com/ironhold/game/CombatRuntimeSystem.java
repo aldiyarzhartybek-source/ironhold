@@ -27,6 +27,7 @@ public final class CombatRuntimeSystem {
     private static final float PROJECTILE_HIT_RADIUS = 12f;
     private static final float MORTAR_SHELL_HIT_RADIUS = 14f;
     private static final float MORTAR_EXPLOSION_TTL_SEC = 0.28f;
+    private static final float WAYPOINT_REACH_DIST = 8f;
 
     public CombatRuntimeSystem(EventBus eventBus, EconomyState economy) {
         CombatKillHelper.install(
@@ -60,15 +61,16 @@ public final class CombatRuntimeSystem {
             return;
         }
         List<ActiveEnemy> escapedEnemies = new ArrayList<>();
+        List<Vector2> path = state.getEnemyPath();
         for (ActiveEnemy enemy : state.getActiveEnemies()) {
-            if (advanceEnemyAlongPath(enemy, state.getEnemyPath(), deltaSec)) {
+            if (advanceEnemyAlongPath(enemy, path, deltaSec)) {
                 escapedEnemies.add(enemy);
             }
         }
         if (!escapedEnemies.isEmpty()) {
             state.getActiveEnemies().removeAll(escapedEnemies);
-            for (int i = 0; i < escapedEnemies.size(); i++) {
-                state.getRuntimeLevelState().onEnemyEscaped();
+            for (ActiveEnemy escaped : escapedEnemies) {
+                state.getRuntimeLevelState().onEnemyEscaped(escaped.getEnemyId());
             }
         }
     }
@@ -351,7 +353,7 @@ public final class CombatRuntimeSystem {
             float dx = target.x - enemy.getX();
             float dy = target.y - enemy.getY();
             float distanceToTarget = (float) Math.sqrt(dx * dx + dy * dy);
-            if (distanceToTarget <= 0.001f) {
+            if (distanceToTarget <= WAYPOINT_REACH_DIST) {
                 enemy.setPosition(target.x, target.y);
                 enemy.setTargetWaypointIndex(targetIndex + 1);
                 continue;

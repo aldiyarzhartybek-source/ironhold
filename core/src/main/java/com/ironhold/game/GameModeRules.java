@@ -7,7 +7,7 @@ import java.util.Objects;
  */
 public final class GameModeRules {
 
-    private static final int CLASSIC_AND_RUSH_LIVES = 100;
+    private static final int CLASSIC_AND_RUSH_LIVES = 10;
     private static final int ONE_LIFE_LIVES = 1;
 
     private GameModeRules() {
@@ -19,5 +19,22 @@ public final class GameModeRules {
             return ONE_LIFE_LIVES;
         }
         return CLASSIC_AND_RUSH_LIVES;
+    }
+
+    /** Base HP damage when an enemy reaches the end of the path. */
+    public static int leakDamageForEnemy(String enemyId) {
+        if ("runner".equals(enemyId)) {
+            return 1;
+        }
+        if ("grunt".equals(enemyId)) {
+            return 3;
+        }
+        if ("elite".equals(enemyId)) {
+            return 5;
+        }
+        if ("boss".equals(enemyId)) {
+            return 10;
+        }
+        return 1;
     }
 }

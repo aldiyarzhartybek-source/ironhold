@@ -60,15 +60,20 @@ public final class EnemyShapeRenderer {
             float scaleMul = 1f + (GameTheme.Draw.ENEMY_HIT_FLASH_SCALE - 1f) * flashIntensity;
             float drawRadius = radius * scaleMul;
 
-            // 1. White outline — slightly larger shape drawn first
-            float outlineRadius = drawRadius + GameTheme.Draw.ENEMY_OUTLINE_THICK;
-            drawShape(template.getVisualShape(), enemy.getX(), enemy.getY(),
-                outlineRadius, rotation, GameTheme.ENEMY_OUTLINE);
+            Color baseFill = template.getFillColor();
+            Color fill = blendTowardWhite(baseFill, flashIntensity);
+            float rimThick = 2.5f;
 
-            // 2. Fill — blended toward white at the flash peak
-            Color fill = blendTowardWhite(template.getFillColor(), flashIntensity);
+            // Outer rim — same hue as body, brighter (like tower bodyOuter)
+            float rimRadius = drawRadius + rimThick;
             drawShape(template.getVisualShape(), enemy.getX(), enemy.getY(),
-                drawRadius, rotation, fill);
+                rimRadius, rotation, enemyRimColor(baseFill));
+
+            // Inner body — slightly muted centre
+            drawShape(template.getVisualShape(), enemy.getX(), enemy.getY(),
+                Math.max(2f, drawRadius - 0.5f), rotation, enemyBodyColor(baseFill, fill));
+
+            drawHealthBar(enemy, drawRadius);
         }
 
         shapes.end();
@@ -107,10 +112,31 @@ public final class EnemyShapeRenderer {
             case HEXAGON:
                 drawRegularPolygon(centerX, centerY, radius, rotationRad, 6);
                 break;
+            case CIRCLE:
+                shapes.circle(centerX, centerY, radius, GameTheme.Draw.CIRCLE_SEGMENTS);
+                break;
             case SQUARE:
             default:
                 drawSquare(centerX, centerY, radius, rotationRad);
                 break;
+        }
+    }
+
+    private void drawHealthBar(ActiveEnemy enemy, float bodyRadius) {
+        if (enemy.getMaxHp() <= 0) {
+            return;
+        }
+        float ratio = Math.max(0f, Math.min(1f, (float) enemy.getCurrentHp() / enemy.getMaxHp()));
+        float barW = GameTheme.Draw.ENEMY_HP_BAR_WIDTH;
+        float barH = GameTheme.Draw.ENEMY_HP_BAR_HEIGHT;
+        float x = enemy.getX() - barW * 0.5f;
+        float y = enemy.getY() + bodyRadius + GameTheme.Draw.ENEMY_HP_BAR_OFFSET;
+
+        shapes.setColor(GameTheme.ENEMY_HP_BAR_BG);
+        shapes.rect(x, y, barW, barH);
+        if (ratio > 0.001f) {
+            shapes.setColor(GameTheme.ENEMY_HP_BAR_FILL);
+            shapes.rect(x, y, barW * ratio, barH);
         }
     }
 
@@ -171,6 +197,24 @@ public final class EnemyShapeRenderer {
      * Returns {@code source} linearly interpolated toward pure white by {@code t ∈ [0,1]}.
      * Alpha is preserved. Used by the hit-flash effect to "wash out" the enemy at impact.
      */
+    private static Color enemyRimColor(Color fill) {
+        Color rim = new Color(fill);
+        rim.r = Math.min(1f, rim.r * 1.08f + 0.14f);
+        rim.g = Math.min(1f, rim.g * 1.08f + 0.14f);
+        rim.b = Math.min(1f, rim.b * 1.08f + 0.14f);
+        rim.a = 1f;
+        return rim;
+    }
+
+    private static Color enemyBodyColor(Color fill, Color flashFill) {
+        Color body = new Color(flashFill);
+        body.r = body.r * 0.72f + fill.r * 0.28f;
+        body.g = body.g * 0.72f + fill.g * 0.28f;
+        body.b = body.b * 0.72f + fill.b * 0.28f;
+        body.a = 1f;
+        return body;
+    }
+
     private static Color blendTowardWhite(Color source, float t) {
         if (t <= 0f) return source;
         if (t > 1f)  t = 1f;

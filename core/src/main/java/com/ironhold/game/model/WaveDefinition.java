@@ -1,39 +1,36 @@
 package com.ironhold.game.model;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
 /**
- * Runtime wave definition skeleton.
+ * Runtime wave: one or more enemy spawn groups (mixed composition).
  */
 public final class WaveDefinition {
 
-    private final String enemyId;
-    private final int count;
-    private final float spawnIntervalSec;
-    private final boolean bossWave;
+    private final List<WaveSpawnGroup> groups;
+
+    public WaveDefinition(List<WaveSpawnGroup> groups) {
+        if (groups == null || groups.isEmpty()) {
+            throw new IllegalArgumentException("groups must not be empty");
+        }
+        this.groups = List.copyOf(groups);
+    }
 
     public WaveDefinition(String enemyId, int count, float spawnIntervalSec) {
-        this(enemyId, count, spawnIntervalSec, false);
+        this(Collections.singletonList(new WaveSpawnGroup(enemyId, count, spawnIntervalSec)));
     }
 
-    public WaveDefinition(String enemyId, int count, float spawnIntervalSec, boolean bossWave) {
-        this.enemyId = enemyId;
-        this.count = count;
-        this.spawnIntervalSec = spawnIntervalSec;
-        this.bossWave = bossWave;
+    public List<WaveSpawnGroup> getGroups() {
+        return groups;
     }
 
-    public String getEnemyId() {
-        return enemyId;
-    }
-
-    public int getCount() {
-        return count;
-    }
-
-    public float getSpawnIntervalSec() {
-        return spawnIntervalSec;
-    }
-
-    public boolean isBossWave() {
-        return bossWave;
+    public int getTotalCount() {
+        int total = 0;
+        for (WaveSpawnGroup group : groups) {
+            total += group.getCount();
+        }
+        return total;
     }
 }

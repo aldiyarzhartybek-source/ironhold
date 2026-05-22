@@ -3,6 +3,7 @@ package com.ironhold.level;
 import com.ironhold.game.GameMode;
 import com.ironhold.game.GameModeRules;
 import com.ironhold.game.model.WaveDefinition;
+import com.ironhold.game.model.WaveSpawnGroup;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,8 @@ public final class RuntimeLevelState {
     private WavePhase wavePhase;
     private int currentWaveIndex;
     private int spawnedInCurrentWave;
+    private int activeSpawnGroupIndex;
+    private int spawnedInActiveGroup;
     private int totalSpawnedEnemies;
     private int escapedEnemies;
     private int baseLives;
@@ -77,6 +80,8 @@ public final class RuntimeLevelState {
         wavePhase = WavePhase.WAVE_ACTIVE;
         activeWaveDefinition = waves.get(currentWaveIndex);
         spawnedInCurrentWave = 0;
+        activeSpawnGroupIndex = 0;
+        spawnedInActiveGroup = 0;
         spawnTimerSec = 0f;
         waveSpawnExhausted = false;
         pendingWaveStartedNumbers.add(currentWaveIndex + 1);
@@ -92,21 +97,34 @@ public final class RuntimeLevelState {
         }
 
         WaveDefinition wave = activeWaveDefinition;
-        float spawnIntervalSec = wave.getSpawnIntervalSec();
         spawnTimerSec += Math.max(0f, deltaSec);
 
-        while (spawnedInCurrentWave < wave.getCount()
-            && spawnTimerSec >= spawnIntervalSec) {
-            spawnTimerSec -= spawnIntervalSec;
-            spawnedInCurrentWave++;
-            totalSpawnedEnemies++;
-            lastSpawnedEnemyId = wave.getEnemyId();
-            pendingSpawnEnemyIds.add(wave.getEnemyId());
+        if (activeSpawnGroupIndex >= wave.getGroups().size()) {
+            if (spawnedInCurrentWave >= wave.getTotalCount()) {
+                waveSpawnExhausted = true;
+            }
+            return;
         }
 
-        if (spawnedInCurrentWave >= wave.getCount()) {
-            waveSpawnExhausted = true;
+        WaveSpawnGroup group = wave.getGroups().get(activeSpawnGroupIndex);
+        float spawnIntervalSec = group.getSpawnIntervalSec();
+
+        if (spawnedInActiveGroup < group.getCount() && spawnTimerSec >= spawnIntervalSec) {
+            spawnTimerSec -= spawnIntervalSec;
+            spawnedInActiveGroup++;
+            spawnedInCurrentWave++;
+            totalSpawnedEnemies++;
+            lastSpawnedEnemyId = group.getEnemyId();
+            pendingSpawnEnemyIds.add(group.getEnemyId());
+            return;
         }
+
+        if (spawnedInActiveGroup >= group.getCount()) {
+            activeSpawnGroupIndex++;
+            spawnedInActiveGroup = 0;
+            spawnTimerSec = 0f;
+        }
+
     }
 
     /**
@@ -126,6 +144,8 @@ public final class RuntimeLevelState {
         currentWaveIndex++;
         activeWaveDefinition = null;
         spawnedInCurrentWave = 0;
+        activeSpawnGroupIndex = 0;
+        spawnedInActiveGroup = 0;
         spawnTimerSec = 0f;
         waveSpawnExhausted = false;
         wavePhase = WavePhase.BETWEEN_WAVES;
@@ -173,16 +193,15 @@ public final class RuntimeLevelState {
         return baseLives;
     }
 
-    public WaveDefinition getActiveWaveDefinition() {
-        return activeWaveDefinition;
-    }
-
     public float getSpawnTimerSec() {
         return spawnTimerSec;
     }
 
     public float getActiveSpawnIntervalSec() {
-        return activeWaveDefinition != null ? activeWaveDefinition.getSpawnIntervalSec() : 0f;
+        if (activeWaveDefinition == null || activeSpawnGroupIndex >= activeWaveDefinition.getGroups().size()) {
+            return 0f;
+        }
+        return activeWaveDefinition.getGroups().get(activeSpawnGroupIndex).getSpawnIntervalSec();
     }
 
     public String getLastSpawnedEnemyId() {
@@ -220,7 +239,7 @@ public final class RuntimeLevelState {
         return completed;
     }
 
-    public void onEnemyEscaped() {
+    public void onEnemyEscaped(String enemyId) {
         if (status != LevelStatus.RUNNING) {
             return;
         }
@@ -230,7 +249,8 @@ public final class RuntimeLevelState {
             status = LevelStatus.FAILED;
             return;
         }
-        baseLives = Math.max(0, baseLives - 1);
+        int leak = GameModeRules.leakDamageForEnemy(enemyId);
+        baseLives = Math.max(0, baseLives - leak);
         if (baseLives <= 0) {
             status = LevelStatus.FAILED;
         }
@@ -260,6 +280,8 @@ public final class RuntimeLevelState {
         wavePhase = WavePhase.BETWEEN_WAVES;
         currentWaveIndex = 0;
         spawnedInCurrentWave = 0;
+        activeSpawnGroupIndex = 0;
+        spawnedInActiveGroup = 0;
         totalSpawnedEnemies = 0;
         escapedEnemies = 0;
         baseLives = 0;

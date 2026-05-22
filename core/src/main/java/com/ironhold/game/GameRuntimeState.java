@@ -28,19 +28,18 @@ public final class GameRuntimeState {
     private final List<LightningEffect> lightningEffects;
     private final List<MortarExplosionEffect> mortarExplosions;
     private final List<FlameConeEffect> flameConeEffects;
-    private final List<Vector2> enemyPath;
-    private String selectedTowerId;
+    private final List<Vector2> enemyPath = new ArrayList<>();
     private int nextEnemyInstanceId;
     private int nextProjectileInstanceId;
     private int lastAwardedGold;
     private int totalGoldEarned;
     private final LevelSessionStats sessionStats;
+    private float levelHpMultiplier = 1f;
 
     public GameRuntimeState(
         RuntimeLevelState runtimeLevelState,
         List<BuildSlot> initialBuildSlots,
-        List<Vector2> enemyPath,
-        String selectedTowerId
+        List<Vector2> enemyPath
     ) {
         this.runtimeLevelState = Objects.requireNonNull(runtimeLevelState, "runtimeLevelState");
         this.buildSlots = new ArrayList<>(Objects.requireNonNull(initialBuildSlots, "initialBuildSlots"));
@@ -51,8 +50,7 @@ public final class GameRuntimeState {
         this.lightningEffects = new ArrayList<>();
         this.mortarExplosions = new ArrayList<>();
         this.flameConeEffects = new ArrayList<>();
-        this.enemyPath = List.copyOf(Objects.requireNonNull(enemyPath, "enemyPath"));
-        this.selectedTowerId = selectedTowerId;
+        setEnemyPath(Objects.requireNonNull(enemyPath, "enemyPath"));
         this.nextEnemyInstanceId = 1;
         this.nextProjectileInstanceId = 1;
         this.lastAwardedGold = 0;
@@ -60,7 +58,7 @@ public final class GameRuntimeState {
         this.sessionStats = new LevelSessionStats();
     }
 
-    public void resetForNewLevel(List<BuildSlot> initialBuildSlots) {
+    public void resetForNewLevel(List<BuildSlot> initialBuildSlots, List<Vector2> levelEnemyPath) {
         activeEnemies.clear();
         placedTowers.clear();
         activeProjectiles.clear();
@@ -70,6 +68,7 @@ public final class GameRuntimeState {
         flameConeEffects.clear();
         buildSlots.clear();
         buildSlots.addAll(initialBuildSlots);
+        setEnemyPath(levelEnemyPath);
         nextEnemyInstanceId = 1;
         nextProjectileInstanceId = 1;
         lastAwardedGold = 0;
@@ -79,6 +78,16 @@ public final class GameRuntimeState {
 
     public LevelSessionStats getSessionStats() {
         return sessionStats;
+    }
+
+    /** Scales enemy HP by level (1.0 on level 1, +18% per level). */
+    public void setLevelHpMultiplier(int levelNumber) {
+        int level = Math.max(1, levelNumber);
+        this.levelHpMultiplier = 1f + (level - 1) * 0.18f;
+    }
+
+    public float getLevelHpMultiplier() {
+        return levelHpMultiplier;
     }
 
     public RuntimeLevelState getRuntimeLevelState() {
@@ -121,12 +130,11 @@ public final class GameRuntimeState {
         return enemyPath;
     }
 
-    public String getSelectedTowerId() {
-        return selectedTowerId;
-    }
-
-    public void setSelectedTowerId(String selectedTowerId) {
-        this.selectedTowerId = selectedTowerId;
+    private void setEnemyPath(List<Vector2> levelEnemyPath) {
+        enemyPath.clear();
+        for (Vector2 point : levelEnemyPath) {
+            enemyPath.add(new Vector2(point));
+        }
     }
 
     public int getNextEnemyInstanceId() {

@@ -8,6 +8,7 @@ import java.util.Locale;
 public enum EnemyVisualShape {
     TRIANGLE,
     SQUARE,
+    CIRCLE,
     PENTAGON,
     HEXAGON;
 

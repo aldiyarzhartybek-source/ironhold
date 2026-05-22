@@ -4,32 +4,32 @@
       "id": "basic_tower",
       "cost": 75,
       "range": 2.8,
-      "damage": 15,
+      "damage": 17,
       "fireRateSec": 1.0,
       "targeting": "nearest"
     },
     {
       "id": "mortar_tower",
       "cost": 130,
-      "range": 4.5,
-      "damage": 28,
-      "fireRateSec": 2.2,
+      "range": 3.2,
+      "damage": 21,
+      "fireRateSec": 3.7,
       "targeting": "first"
     },
     {
       "id": "lightning_tower",
       "cost": 150,
-      "range": 3.5,
-      "damage": 20,
-      "fireRateSec": 0.9,
+      "range": 2.8,
+      "damage": 14,
+      "fireRateSec": 1.4,
       "targeting": "nearest"
     },
     {
       "id": "flamethrower_tower",
       "cost": 110,
-      "range": 2.0,
-      "damage": 14,
-      "fireRateSec": 1.35,
+      "range": 2.8,
+      "damage": 15,
+      "fireRateSec": 1.0,
       "targeting": "nearest"
     }
   ]

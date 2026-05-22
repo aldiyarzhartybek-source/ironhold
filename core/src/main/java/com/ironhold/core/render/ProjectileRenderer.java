@@ -123,7 +123,7 @@ public final class ProjectileRenderer {
         shapes.circle(p.getX(), p.getY(), r + 2.5f, 16);
         shapes.setColor(GameTheme.MORTAR_SHELL);
         shapes.circle(p.getX(), p.getY(), r, 14);
-        shapes.setColor(GameTheme.MORTAR_CORE);
+        shapes.setColor(GameTheme.MORTAR_SHELL_HOT);
         shapes.circle(p.getX(), p.getY(), r * 0.45f, 10);
     }
 
